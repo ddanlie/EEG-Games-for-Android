@@ -29,6 +29,7 @@ public class AndroidMindroveEEGSignalSource : AbstractEEGSignalSource
     private double[][] tmpEEGData = null;
 
 
+    // Mindrove Kotlin library proxy function - used as a callback to process new EEG data coming
     private class ServerDataProcessCallback : AndroidJavaProxy 
     { 
         private Action<object> processDataCallback = null;
@@ -51,7 +52,7 @@ public class AndroidMindroveEEGSignalSource : AbstractEEGSignalSource
             return false;
         }
         // Get the current Android Activity context
-        // No need in activity, let this be here just as example
+        // No need in activity, let this be here just as an example
         //using (AndroidJavaClass unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
         //{
         //    currentActivity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
@@ -65,10 +66,12 @@ public class AndroidMindroveEEGSignalSource : AbstractEEGSignalSource
         // Start the server
         this.serverManager.Call("start");
         this.serverManager.Call("pause");// do not stream yet
-
+        PreciseRecord = true;
         return true;
     }
 
+
+    // Called <Sampling Rate (500Hz)> times per second
     private void PassThroughStreamData(object sensorData)
     {
         double ch1 = ((AndroidJavaObject)sensorData).Get<double>("channel1");
@@ -80,7 +83,9 @@ public class AndroidMindroveEEGSignalSource : AbstractEEGSignalSource
         double ch7 = ((AndroidJavaObject)sensorData).Get<double>("channel7");
         double ch8 = ((AndroidJavaObject)sensorData).Get<double>("channel8");
 
-        Debug.Log($"Asking sensor data for values: {ch1} {ch2} {ch3} {ch4} {ch5} {ch6} {ch7} {ch8}");
+        AssignPreciseStreamData(new double[] { ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8 });
+
+        //Debug.Log($"Asking sensor data for values: {ch1} {ch2} {ch3} {ch4} {ch5} {ch6} {ch7} {ch8}");
 
         lock (crossCallbackLock)
         {
@@ -96,6 +101,7 @@ public class AndroidMindroveEEGSignalSource : AbstractEEGSignalSource
                 new double[] { ch8 }
             };
         }
+
     }
 
     public override double[][] GetCurrentData()

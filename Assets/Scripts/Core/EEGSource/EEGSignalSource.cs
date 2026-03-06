@@ -9,6 +9,7 @@ using System;
 using System.Threading;
 using System.Linq;
 using UnityEngine.UIElements;
+using System.Collections.Concurrent;
 
 public abstract class AbstractEEGSignalSource : MonoBehaviour
 {
@@ -25,6 +26,12 @@ public abstract class AbstractEEGSignalSource : MonoBehaviour
     public bool IsSourceInitialized { get { return sourceInitialized; } }
     private bool sourceStreaming = false;
     public bool IsSourceStreaming { get { return sourceStreaming; } }
+    // Precise Data Record
+    // Remark:
+    // this is the queue for sampling rate precise data gathering
+    // careful: long data streaming might be RAM heavy - that's why this option should be swithced on explicitly
+    public bool PreciseRecord { get; protected set; } = false;
+    protected ConcurrentQueue<double[]> concurrentEEGDataQueue = new();
 
     protected virtual void Awake()
     {
@@ -167,7 +174,16 @@ public abstract class AbstractEEGSignalSource : MonoBehaviour
     // Return whether operation regarding stram start was successfull or not
     protected abstract bool CustomStartStreaming();
 
+    // Has to return data to be assigned to EEGData field
     protected abstract double[][] AssignStreamData();
+
+    // Must be called precisely at the moment of next data piece coming
+    // item - array of latest samples per channel. Example: 8 channels -> item =  {v1, v2, v3, v4, ... v8}
+    protected virtual void AssignPreciseStreamData(double[] item)
+    {
+        if (!PreciseRecord) { return; }
+        concurrentEEGDataQueue.Enqueue(item);
+    }
 
     public bool StopStreaming()
     {
@@ -213,6 +229,19 @@ public abstract class AbstractEEGSignalSource : MonoBehaviour
         {
             return "NULL";
         }
+        // The logic of this? - It's generally supposed the eegData is signed as a buffer and the last values show the latest results
+        // This is how desktop version encourage to work with it, the adndroid version is different but I adapted it for double array of single value - same structure
+        // So
+
+        // Desktop data (need val3):
+        // Ch1 val1, val2, val3
+        // ...
+        // Ch8 val1, val2, val3
+
+        // Android data (no buffer in logic):
+        // Ch1 val1
+        // ...
+        // Ch8 val1
         int lastIndex = this.eegData[0].Length - 1;
         double[] lastValues = Enumerable.Range(0, this.eegData.GetLength(0)).Select(rowIndex => this.eegData[rowIndex][lastIndex]).ToArray();
         return $"Channels ({this.eegData.GetLength(0)}):\n{string.Join("  ", lastValues)}";

@@ -7,11 +7,9 @@ using UXF;
 public abstract class AbstractEEGGame : MonoBehaviour
 {
     private Session session = null;
-    private bool _running;
     public bool Running { get; protected set; } = false;
 
     // Game Manager instance shorter name
-    private GameManager _gameManager;
 
     protected GameManager GameManager { get; private set; } = null;
 

@@ -30,6 +30,7 @@ public class DesktopMindroveEEGSignalSource : AbstractEEGSignalSource
         BoardShim.enable_dev_board_logger();
         BoardShim.set_log_file("MINDROVE.log");
 #endif
+        PreciseRecord = true;
         MindRoveInputParams input_params = new MindRoveInputParams();
         this.boardId = (int)BoardIds.MINDROVE_WIFI_BOARD;
         this.boardShim = new BoardShim(this.boardId, input_params);
@@ -56,15 +57,20 @@ public class DesktopMindroveEEGSignalSource : AbstractEEGSignalSource
         //Debug.Log("Stream data thread started");
         int[] eegChannelsIndexes = BoardShim.get_eeg_channels(this.boardId);
         int samplingRate = this.GetSamplingRate();
-        int windowSize = 2; // seconds
-        int numPoints = windowSize * samplingRate;
+        int numPoints;
 
         double[][] eegData = this.EEGData;
-        if (this.boardShim.get_board_data_count() >= numPoints)
+        if (this.boardShim.get_board_data_count() >= 0)
         {
-            Debug.Log("Reading data buffer...");
-            double[,] data = this.boardShim.get_current_board_data(numPoints); // output is: (num_channels + some_data_num, numPoints) size array
+            numPoints = this.boardShim.get_board_data_count();
+            //Debug.Log("Reading data buffer...");
+            double[,] data = this.boardShim.get_current_board_data(numPoints); // output is (in dimensions sizes): (dim1: num_channels + some_data_num, dim2: >= numPoints) size array
             eegData = eegChannelsIndexes.Select(index => Enumerable.Range(0, data.GetLength(1)).Select(colIndex => data[index, colIndex]).ToArray()).ToArray();
+
+            for (int i = 0; i < numPoints; i++) 
+            {
+                AssignPreciseStreamData(eegData.Select(ch => ch[i]).ToArray());
+            }
         }
 
         return eegData;
