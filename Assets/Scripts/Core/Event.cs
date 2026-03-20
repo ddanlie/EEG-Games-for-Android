@@ -4,8 +4,6 @@ using UnityEngine;
 
 public class EEGEvent
 {
-    private string _eventId;
-    public string eventId { get; private set; } = string.Empty;
-    private string _eventType;
-    public string eventType { get; private set; } = string.Empty;
+    public string EventId { get; private set; } = string.Empty;
+    public string EventType { get; private set; } = string.Empty;
 }
