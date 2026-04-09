@@ -1,4 +1,5 @@
 //#define EEG_DEBUG
+#define API_DEBUG
 
 using System;
 using System.Collections;
@@ -15,26 +16,36 @@ using static GameManager;
 // - communicates with api client: user data, games records data
 public class GameManager : MonoBehaviour
 {
-    public enum AppState {
-        Idle,
-        InGame //see GameState
-    }
-
-    public enum GameState
+    public enum AppState
     {
         Idle,
-        GameProcess,
+        TryLogin,
+        Login,
+        Logout,
+        MainMenu,
+        UserProfile,
+        ProfileAnalysis,
+        CoordinatorAnalysis,
+        GameInfo,
+        CoordinatorProfile,
+        DeviceCheck,
+
+        InGame
     }
+
+    // Cache
+    UserIdentity currentUserIdentity;
 
     // State
     AppState appState = AppState.Idle;
+    AppState appStateChangeTo = AppState.Idle;
 
 
     // API Client
     APIClient apiclient;
 
     // Local Data
-    private string identityFileName = "identity.txt";
+    private const string identityFileName = "identity.txt";
 
     // Singleton
     private static GameManager instance = null;
@@ -45,7 +56,6 @@ public class GameManager : MonoBehaviour
     private double updateCounter = 0;
 #endif
 
-    // 
 
     private void Awake()
     {
@@ -64,10 +74,20 @@ public class GameManager : MonoBehaviour
     {
 #if EEG_DEBUG
         UIManagerGameScene.GetInstance().LoadEEGInfoSceneAdditive();
+       
 #else
-        apiclient = new APIClient();
+        
         appState = AppState.Idle;
+        currentUserIdentity = new UserIdentity();
 #endif
+
+#if API_DEBUG
+    apiclient = new APIClient(StubMode: true);
+#else
+    apiclient = new APIClient();
+#endif
+
+       RunStateMachine();
     }
 
     // Update is called once per frame
@@ -76,14 +96,57 @@ public class GameManager : MonoBehaviour
 #if EEG_DEBUG
         this.StreamEEGDataToEEGInfoScene();
 #else
-        switch(appState)
-        {
-            case AppState.Idle:
-                UIManagerGameScene.GetInstance().StartUI();
-                break;
-        }
+
 #endif
 
+    }
+
+    public void StateChangeRequest(AppState changeToState)
+    {
+        appStateChangeTo = changeToState;
+    }
+
+    private async void RunStateMachine()
+    {
+        if (appStateChangeTo != AppState.Idle)
+        {
+            appState = appStateChangeTo;
+            appStateChangeTo = AppState.Idle;
+        }
+        switch (appState)
+        {
+            case AppState.Idle:
+                {
+                    appState = AppState.TryLogin;
+                    //UIManagerGameScene.GetInstance();
+                    break;
+                }
+            case AppState.TryLogin:
+                {
+                    UIManagerGameScene.GetInstance().TryAutoLogin();
+                    UserIdentity result = await TryAutoLogin();
+                    if (result.Equals(default(UserIdentity)))
+                    {
+                        appState = AppState.Login;
+                    }
+                    else
+                    {
+                        appState = AppState.MainMenu;
+                        currentUserIdentity = result;
+                    }
+                    break;
+                }
+            case AppState.Login:
+                {
+                    UIManagerGameScene.GetInstance().Login();
+                    break;
+                }
+            case AppState.MainMenu:
+                {
+                    UIManagerGameScene.GetInstance().MainMenu(currentUserIdentity);
+                    break;
+                }
+        }
     }
 
     public static GameManager GetInstance()
@@ -171,19 +234,19 @@ public class GameManager : MonoBehaviour
     // Public API for UI managers
 
 
-    // Looks for local saved data: <auth token> and requests server for login
+    // Looks for locally saved data: <auth token> etc.. and requests server for login
     // - if token present + login requests successful returns userId
-    // otherwise returns null or ""
-    public async Task<string> TryAutoLogin()
+    // otherwise returns default structure
+    public async Task<UserIdentity> TryAutoLogin()
     {
         // Try to find token
         var identity = LocalStorage.Load<UserIdentity>(identityFileName);
-        if (string.IsNullOrEmpty(identity.token)) { return null; }
+        if (string.IsNullOrEmpty(identity.token)) { return default; }
         var userIdentity = await apiclient.Login(identity.token);
-        if (string.IsNullOrEmpty(userIdentity.userId) || identity.userId != userIdentity.userId) { return null; }
+        if (string.IsNullOrEmpty(userIdentity.userId) || identity.userId != userIdentity.userId) { return default; }
         // Save data
         LocalStorage.Save<UserIdentity>(identityFileName, userIdentity);
-        return userIdentity.userId;
+        return userIdentity;
 
     }
 
@@ -223,9 +286,6 @@ public class GameManager : MonoBehaviour
 
     public void LogOut()
     {
-        //delete api access token
-        LocalStorage.Delete("token.txt");
-        //delete user general data
-        //TODO
+        LocalStorage.Delete(identityFileName);
     }
 }
