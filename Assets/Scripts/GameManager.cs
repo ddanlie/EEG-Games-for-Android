@@ -30,6 +30,8 @@ public class GameManager : MonoBehaviour
         CoordinatorProfile,
         DeviceCheck,
 
+        WaitChange,
+
         InGame
     }
 
@@ -108,44 +110,56 @@ public class GameManager : MonoBehaviour
 
     private async void RunStateMachine()
     {
-        if (appStateChangeTo != AppState.Idle)
+        while(true)
         {
-            appState = appStateChangeTo;
-            appStateChangeTo = AppState.Idle;
-        }
-        switch (appState)
-        {
-            case AppState.Idle:
-                {
-                    appState = AppState.TryLogin;
-                    //UIManagerGameScene.GetInstance();
-                    break;
-                }
-            case AppState.TryLogin:
-                {
-                    UIManagerGameScene.GetInstance().TryAutoLogin();
-                    UserIdentity result = await TryAutoLogin();
-                    if (result.Equals(default(UserIdentity)))
+            await Task.Delay(100);
+            Debug.Log("App state: " + appState.ToString());
+            if (appStateChangeTo != AppState.Idle)
+            {
+                appState = appStateChangeTo;
+                appStateChangeTo = AppState.Idle;
+            }
+            switch (appState)
+            {
+                case AppState.Idle:
                     {
-                        appState = AppState.Login;
+                        appState = AppState.TryLogin;
+                        //UIManagerGameScene.GetInstance();
+                        break;
                     }
-                    else
+                case AppState.TryLogin:
                     {
-                        appState = AppState.MainMenu;
-                        currentUserIdentity = result;
+                        UIManagerGameScene.GetInstance().TryAutoLogin();
+                        UserIdentity result = await TryAutoLogin();
+                        result = default(UserIdentity);
+                        if (result.Equals(default(UserIdentity)))
+                        {
+                            appState = AppState.Login;
+                        }
+                        else
+                        {
+                            appState = AppState.MainMenu;
+                            currentUserIdentity = result;
+                        }
+                        break;
                     }
-                    break;
-                }
-            case AppState.Login:
-                {
-                    UIManagerGameScene.GetInstance().Login();
-                    break;
-                }
-            case AppState.MainMenu:
-                {
-                    UIManagerGameScene.GetInstance().MainMenu(currentUserIdentity);
-                    break;
-                }
+                case AppState.Login:
+                    {
+                        UIManagerGameScene.GetInstance().Login();
+                        appState = AppState.WaitChange;
+                        break;
+                    }
+                case AppState.MainMenu:
+                    {
+                        UIManagerGameScene.GetInstance().MainMenu(currentUserIdentity);
+                        break;
+                    }
+                case AppState.WaitChange:
+                    {
+                        //do nothing
+                        break;
+                    }
+            }
         }
     }
 
@@ -235,7 +249,7 @@ public class GameManager : MonoBehaviour
 
 
     // Looks for locally saved data: <auth token> etc.. and requests server for login
-    // - if token present + login requests successful returns userId
+    // if token present + login requests successful returns UserIdentity
     // otherwise returns default structure
     public async Task<UserIdentity> TryAutoLogin()
     {
@@ -255,6 +269,8 @@ public class GameManager : MonoBehaviour
         return await apiclient.RequestLogin(email);
     }
 
+
+    // In case of successfull login returns userId string, otherwise - null or ""
     public async Task<string> Login(string email, string code)
     {
         var userIdentity = await apiclient.Login(email, code);
@@ -267,22 +283,22 @@ public class GameManager : MonoBehaviour
     // Requests registration
     // if request was successfull (true new user + no network errors) - returns true
     // otherwise - returns false
-    public async Task<bool> RequestRegisterUser(string email)
-    {
-        return await apiclient.RequestRegister(email);
-    }
+    //public async Task<bool> RequestRegisterUser(string email)
+    //{
+    //    return await apiclient.RequestRegister(email);
+    //}
 
     // Requests actual user registration
     // Checks code from email, if wrong - returns null or ""
     // Saves <auth token>, setting up user data cache, returns userId string
-    public async Task<string> RegisterUser(string email, string code)
-    {
-        var userIdentity = await apiclient.Register(email, code);
-        if (string.IsNullOrEmpty(userIdentity.userId) || string.IsNullOrEmpty(userIdentity.token)) { return null;  }
-        // save data
-        LocalStorage.Save<UserIdentity>(identityFileName, userIdentity);
-        return userIdentity.userId;
-    }
+    //public async Task<string> RegisterUser(string email, string code)
+    //{
+    //    var userIdentity = await apiclient.Register(email, code);
+    //    if (string.IsNullOrEmpty(userIdentity.userId) || string.IsNullOrEmpty(userIdentity.token)) { return null;  }
+    //    // save data
+    //    LocalStorage.Save<UserIdentity>(identityFileName, userIdentity);
+    //    return userIdentity.userId;
+    //}
 
     public void LogOut()
     {

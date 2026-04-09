@@ -2,7 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using static System.Net.Mime.MediaTypeNames;
 
 // Main ui manager:
 // - reacts to menu activities, packs messages for game manager
@@ -107,8 +109,40 @@ public class UIManagerGameScene : MonoBehaviour
     public void Login()
     {
         ShowPanel("LoginPanel");
+
+        Dictionary<string, GameObject> elements = GeneralUtilities.FindChildrenByNamesRecursive(this.canvas.transform, new List<string> 
+        { 
+            "LoginStatusText", "EmailInputField", "VerificationCodeInputField", "LoginButton" 
+        });
         // Hide status
-        TextMeshProUGUI statusText = GeneralUtilities.FindChildByName(this.canvas.transform, "LoginStatusText")?.GetComponent<TextMeshProUGUI>(); ;
+        TextMeshProUGUI statusText = elements["LoginStatusText"]?.GetComponent<TextMeshProUGUI>();
+        statusText.text = "";
+        statusText.enabled = false;
+        // Blockk Login button, set text
+        const string sendCodeString = "Send Code";
+        const string loginString = "Log In";
+        Button loginButon = elements["LoginButton"]?.GetComponent<Button>();
+        loginButon.interactable = false;
+        TextMeshProUGUI loginButtonText = loginButon.GetComponentInChildren<TextMeshProUGUI>();
+        loginButtonText.text = sendCodeString;
+        // Add input listeners
+        TMP_InputField emailInput = elements["EmailInputField"]?.GetComponent<TMP_InputField>();
+        emailInput.onValueChanged.AddListener(value =>
+        {
+            loginButon.interactable = !string.IsNullOrEmpty(value);
+        });
+        TMP_InputField codeInput = elements["VerificationCodeInputField"]?.GetComponent<TMP_InputField>();
+        codeInput.onEndEdit.AddListener(value =>
+        {
+            loginButtonText.text = string.IsNullOrEmpty(value) ? sendCodeString : loginString;
+        });
+
+
+        //TextMeshProUGUI statusText = GeneralUtilities.FindChildByName(this.canvas.transform, "LoginStatusText")?.GetComponent<TextMeshProUGUI>();
+        //statusText.enabled = false;
+        //Button loginButon = GeneralUtilities.FindChildByName(this.canvas.transform, "LoginButton")?.GetComponent<Button>();
+        //TMP_InputField emailInput = GeneralUtilities.FindChildByName(this.canvas.transform, "EmailInputField")?.GetComponent<TMP_InputField>();
+        //TMP_InputField codeInput = GeneralUtilities.FindChildByName(this.canvas.transform, "EmailInputField")?.GetComponent<TMP_InputField>();
     }
 
     public void MainMenu(UserIdentity currentUserIdentity)
@@ -175,9 +209,52 @@ public class UIManagerGameScene : MonoBehaviour
 
     // Login Panel 
 
-    public void OnGetAccessButtonClick()
+    public async void OnLoginButtonClick()
     {
+        // Block and read input, wait for the login 
+        Dictionary<string, GameObject> elements = GeneralUtilities.FindChildrenByNamesRecursive(this.canvas.transform, new List<string>
+        {
+            "EmailInputField", "VerificationCodeInputField", "LoginStatusText"
+        });
+        TMP_InputField emailInput = elements["EmailInputField"]?.GetComponent<TMP_InputField>();
+        TMP_InputField codeInput = elements["VerificationCodeInputField"]?.GetComponent<TMP_InputField>();
+        TextMeshProUGUI statusText = elements["LoginStatusText"]?.GetComponent<TextMeshProUGUI>();
+        statusText.enabled = true;
+        statusText.text = "";
+        // Send code or login
+        if (string.IsNullOrEmpty(codeInput.text))
+        {
+            // send code
+            statusText.text = "Sending the access code...";
+            if(await GameManager.GetInstance().RequestLogin(emailInput.text))
+            {
+                statusText.text = "Code was sent, please check your email.\nIn case you cannot find the code, try to send it again";
+            }
+            else
+            {
+                statusText.text = "Error, code wasn't sent.\nTry again";
+            }
+        }
+        else
+        {
+            // login
+            statusText.text = "Connecting to the server, please wait...";
+            string result = await GameManager.GetInstance().Login(emailInput.text, codeInput.text);
+            if(string.IsNullOrEmpty(result))
+            {
+                statusText.text = "Error, authentication failed\nTry again";
+            }
+            else 
+            {
+                statusText.text = "Successful authentication, redirecting to the app...";
+                GameManager.GetInstance().StateChangeRequest(GameManager.AppState.MainMenu);
+            }
+        }
+    }
 
+    public void OnSkipButtonPressed()
+    {
+        // TODO: add anonymous user functionality
     }
 
     // Main Menu Panel

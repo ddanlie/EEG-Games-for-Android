@@ -4,14 +4,13 @@ using System.Threading.Tasks;
 using Unity.VisualScripting.Antlr3.Runtime;
 using UnityEngine;
 using UnityEngine.Networking;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.ListView;
 
 public class APIClient
 {
     private const string BaseUrl = "xxx";
     private bool StubMode;
     private int StubTimerSec;// how long stub operations would last [seconds]
-    public APIClient(bool StubMode = false, int StubTimerSec=4) 
+    public APIClient(bool StubMode = false, int StubTimerSec=4000) 
     {
         this.StubMode = StubMode;
         this.StubTimerSec = StubTimerSec;
