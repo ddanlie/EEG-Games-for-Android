@@ -58,5 +58,15 @@ public class GeneralUtilities
         return results;
     }
 
-
+    public static void OpenWifiPanel()
+    {
+#if UNITY_ANDROID && !UNITY_EDITOR
+    using (var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
+    {
+        var currentActivity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
+        var intent = new AndroidJavaObject("android.content.Intent", "android.settings.panel.action.INTERNET_CONNECTIVITY");
+        currentActivity.Call("startActivity", intent);
+    }
+#endif
+    }
 }

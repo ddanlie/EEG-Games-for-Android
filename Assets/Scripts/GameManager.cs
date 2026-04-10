@@ -151,7 +151,8 @@ public class GameManager : MonoBehaviour
                     }
                 case AppState.MainMenu:
                     {
-                        UIManagerGameScene.GetInstance().MainMenu(currentUserIdentity);
+                        // TODO get indifivual info
+                        UIManagerGameScene.GetInstance().MainMenu(currentUserIdentity, default(IndividualInfo));
                         break;
                     }
                 case AppState.WaitChange:
@@ -300,8 +301,18 @@ public class GameManager : MonoBehaviour
     //    return userIdentity.userId;
     //}
 
-    public void LogOut()
+    public void Logout()
     {
         LocalStorage.Delete(identityFileName);
+    }
+
+    public async Task<IndividualInfo> RequestIndividualInfo()
+    {
+        return await apiclient.GetIndividualInfo(currentUserIdentity.userId);
+    }
+
+    public async Task<GeneralGameListInfo> RequestGeneralEEGGamesInfo()
+    {
+        return await apiclient.GetGeneralEEGGamesInfo();
     }
 }

@@ -45,3 +45,20 @@ public struct IndividualInfo
     public Alcohol alcohol;
 
 }
+
+
+[Serializable]
+public struct GeneralGameListInfo
+{
+    public GeneralGameInfo[] games;
+}
+
+[Serializable]
+public struct GeneralGameInfo
+{
+    public string id;
+    public string name;
+    public string description;
+    public string domain;
+    public string subdomain;
+}

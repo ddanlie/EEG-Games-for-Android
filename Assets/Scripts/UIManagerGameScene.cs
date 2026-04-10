@@ -5,20 +5,43 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using static System.Net.Mime.MediaTypeNames;
+using Unity.VisualScripting;
+using UnityEngine.UIElements;
 
 // Main ui manager:
 // - reacts to menu activities, packs messages for game manager
 // - loads/unloads other games scenes
 public class UIManagerGameScene : MonoBehaviour
 {
+    // General info/dependencies
+    // Canvas to manipulate
+    [Header("General Dependencies")]
+    [SerializeField]
+    public Canvas canvas;
     private struct GeneralUIInfo
     {
         public bool anonymousUser;
     }
+
+    // Main menu info/dependencies
     private struct MainMenuInfo
     {
 
     }
+    [Header("Main Menu")]
+    // individual info
+    [SerializeField]
+    private GameObject basicInfoScrollViewContent;
+    [SerializeField]
+    private GameObject basicInfoRowPrefab;
+    // games list
+    [SerializeField]
+    private GameObject gameListScrollViewContent;
+    [SerializeField]
+    private GameObject gameListTitleRowPrefab;
+    [SerializeField]
+    private GameObject gameListRowButtonPrefab;
+
     private GeneralUIInfo generalUiInfo;
     private MainMenuInfo mainMenuInfo;
 
@@ -28,10 +51,6 @@ public class UIManagerGameScene : MonoBehaviour
         AuthorizedMode,
         TestMode
     }
-
-    // Canvas to manipulate
-    [SerializeField]
-    public Canvas canvas;
 
     // Singleton
     private static UIManagerGameScene instance = null;
@@ -121,16 +140,17 @@ public class UIManagerGameScene : MonoBehaviour
         // Blockk Login button, set text
         const string sendCodeString = "Send Code";
         const string loginString = "Log In";
-        Button loginButon = elements["LoginButton"]?.GetComponent<Button>();
-        loginButon.interactable = false;
+        UnityEngine.UI.Button loginButon = elements["LoginButton"]?.GetComponent<UnityEngine.UI.Button>();
+        loginButon.interactable = true;
         TextMeshProUGUI loginButtonText = loginButon.GetComponentInChildren<TextMeshProUGUI>();
         loginButtonText.text = sendCodeString;
         // Add input listeners
         TMP_InputField emailInput = elements["EmailInputField"]?.GetComponent<TMP_InputField>();
-        emailInput.onValueChanged.AddListener(value =>
-        {
-            loginButon.interactable = !string.IsNullOrEmpty(value);
-        });
+        // I just made button to be interactable all the time
+        //emailInput.onValueChanged.AddListener(value =>
+        //{
+        //    loginButon.interactable = !string.IsNullOrEmpty(value);
+        //});
         TMP_InputField codeInput = elements["VerificationCodeInputField"]?.GetComponent<TMP_InputField>();
         codeInput.onEndEdit.AddListener(value =>
         {
@@ -145,20 +165,67 @@ public class UIManagerGameScene : MonoBehaviour
         //TMP_InputField codeInput = GeneralUtilities.FindChildByName(this.canvas.transform, "EmailInputField")?.GetComponent<TMP_InputField>();
     }
 
-    public void MainMenu(UserIdentity currentUserIdentity)
+    public async void MainMenu(UserIdentity currentUserIdentity, IndividualInfo individualInfo)
     {
         // Check if anonymous user, show limited main menu if true
         if (currentUserIdentity.Equals(default(UserIdentity)))
         {
             this.generalUiInfo.anonymousUser = true;
-            ShowPanel("MainMenuPanel");
+            ShowPanel("LoadingDataPanel");
+            GeneralGameListInfo gameList = await GameManager.GetInstance().RequestGeneralEEGGamesInfo();
+            // TODO block profile, analysis and play buttons
+            ShowPanel("AnonymousMainMenuPanel");
         }
         else
         {
             this.generalUiInfo.anonymousUser = false;
-            ShowPanel("AnonymousMainMenuPanel");
+            ShowPanel("LoadingDataPanel");
+            // Get game list
+            GeneralGameListInfo gameList = await GameManager.GetInstance().RequestGeneralEEGGamesInfo();
+            // Get individual info
+            IndividualInfo currentIndividualInfo = await GameManager.GetInstance().RequestIndividualInfo();
+            // Show loaded data
+            // individual info data
+            var dict = APIClientUtils.IndividualInfoToDict(currentIndividualInfo);
+            foreach (var kvp in dict)
+            {
+                var row = Instantiate(basicInfoRowPrefab, basicInfoScrollViewContent.transform);
+                row.transform.SetAsLastSibling();
+
+                TextMeshProUGUI propertyText = row.transform.Find("InfoRowProperty").GetComponent<TextMeshProUGUI>();
+                TextMeshProUGUI valueText = row.transform.Find("InfoRowValue").GetComponent<TextMeshProUGUI>();
+
+                propertyText.text = kvp.Key;
+                valueText.text = kvp.Value;
+            }
+            // game list data
+            var sortedGames = APIClientUtils.GeneralGameListInfoSortBySubdomain(gameList);
+            foreach (var kvp in sortedGames)
+            {
+                var title = Instantiate(gameListTitleRowPrefab, gameListScrollViewContent.transform).GetComponent<TextMeshProUGUI>();
+                title.transform.SetAsLastSibling();
+                foreach (var gameItemInfo in kvp.Value.games) 
+                {
+                    var rowButton = Instantiate(gameListRowButtonPrefab, gameListScrollViewContent.transform).GetComponent<UnityEngine.UI.Button>();
+                    rowButton.transform.SetAsLastSibling();
+                    rowButton.onClick.AddListener(() => 
+                    { 
+                        //show game description    
+                        
+                        //rebind play, tutorial and info buttons
+                    });
+                }
+            }
+            //Hint:
+            //basicInfoScrollViewContent - individual info content object
+            //basicInfoRowPrefab         - individual info row with 2 texts - property name and value
+
+            //gameListScrollViewContent  - game list content object
+            //gameListTitleRowPrefab     - game list title text
+            //gameListRowButtonPrefab    - game list button to get game info (several buttons under 1 title)
+
+            ShowPanel("MainMenuPanel");
         }
-        
     }
 
     // Private section
@@ -250,6 +317,17 @@ public class UIManagerGameScene : MonoBehaviour
                 GameManager.GetInstance().StateChangeRequest(GameManager.AppState.MainMenu);
             }
         }
+    }
+
+    public void OnLogoutButtonClick()
+    {
+        GameManager.GetInstance().Logout();
+        GameManager.GetInstance().StateChangeRequest(GameManager.AppState.Login);
+    }
+
+    public void OnWiFiButtonClick()
+    {
+        GeneralUtilities.OpenWifiPanel();
     }
 
     public void OnSkipButtonPressed()

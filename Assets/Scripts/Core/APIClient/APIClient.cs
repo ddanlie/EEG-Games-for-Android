@@ -72,7 +72,6 @@ public class APIClient
         return request.result == UnityWebRequest.Result.Success;
     }
 
-
     //public async Task<bool> RequestRegister(string email)
     //{
     //    if (StubMode) { await Task.Delay(StubTimerSec); return true; }
@@ -122,8 +121,25 @@ public class APIClient
                 alcohol = IndividualInfo.Alcohol.Moderate
             };
         }
-        return default;
+        return default; // TODO - real server request
 
-        // TODO - real server request
+
+    }
+
+    public async Task<GeneralGameListInfo> GetGeneralEEGGamesInfo()
+    {
+        if (StubMode)
+        {
+            return new GeneralGameListInfo
+            {
+                games = new[]
+                {
+                    new GeneralGameInfo { id="1", name="Game 1", description="Very nice game, helpful for early disabilities signs detection", domain="Complex Attention", subdomain="Sustained Attention"},
+                    new GeneralGameInfo { id="2", name="Game 2", description="Very nice game, helpful for early disabilities signs detection", domain="Complex Attention", subdomain="Divided Attention"},
+                    new GeneralGameInfo { id="3", name="Game 3", description="Very nice game, helpful for early disabilities signs detection", domain="Complex Attention", subdomain="Selective Attention"},
+                }
+            };
+        }
+        return default; // TODO - real server request
     }
 }
