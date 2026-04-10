@@ -186,8 +186,11 @@ public class UIManagerGameScene : MonoBehaviour
             IndividualInfo currentIndividualInfo = await GameManager.GetInstance().RequestIndividualInfo();
             // Show loaded data
             // individual info data
-            var dict = APIClientUtils.IndividualInfoToDict(currentIndividualInfo);
-            foreach (var kvp in dict)
+            var individualInfoDict = APIClientUtils.IndividualInfoToDict(currentIndividualInfo);
+            // clean content first
+            foreach (Transform child in basicInfoScrollViewContent.transform) { Object.Destroy(child.gameObject); }
+            // then add current info
+            foreach (var kvp in individualInfoDict)
             {
                 var row = Instantiate(basicInfoRowPrefab, basicInfoScrollViewContent.transform);
                 row.transform.SetAsLastSibling();
@@ -200,6 +203,19 @@ public class UIManagerGameScene : MonoBehaviour
             }
             // game list data
             var sortedGames = APIClientUtils.GeneralGameListInfoSortBySubdomain(gameList);
+            // clean game list
+            foreach (Transform child in gameListScrollViewContent.transform) { Object.Destroy(child.gameObject); }
+            // also find necessary ui elements
+            Dictionary<string, GameObject> elements = GeneralUtilities.FindChildrenByNamesRecursive(this.canvas.transform, new List<string>
+            {
+                "GameDescriptionText", "TutorialButton", "PlayButton", "InfoButton"
+            });
+            TextMeshProUGUI gameDescription = elements["GameDescriptionText"]?.GetComponent<TextMeshProUGUI>();
+            gameDescription.text = "";
+            UnityEngine.UI.Button tutorialButton = elements["TutorialButton"]?.GetComponent<UnityEngine.UI.Button>();
+            UnityEngine.UI.Button playButton = elements["PlayButton"]?.GetComponent<UnityEngine.UI.Button>();
+            UnityEngine.UI.Button infoButton = elements["InfoButton"]?.GetComponent<UnityEngine.UI.Button>();
+            // add current game list content
             foreach (var kvp in sortedGames)
             {
                 var title = Instantiate(gameListTitleRowPrefab, gameListScrollViewContent.transform).GetComponent<TextMeshProUGUI>();
@@ -208,11 +224,27 @@ public class UIManagerGameScene : MonoBehaviour
                 {
                     var rowButton = Instantiate(gameListRowButtonPrefab, gameListScrollViewContent.transform).GetComponent<UnityEngine.UI.Button>();
                     rowButton.transform.SetAsLastSibling();
+                    rowButton.onClick.RemoveAllListeners();
                     rowButton.onClick.AddListener(() => 
                     { 
                         //show game description    
-                        
+                        gameDescription.text = gameItemInfo.description;
                         //rebind play, tutorial and info buttons
+                        playButton.onClick.RemoveAllListeners();
+                        playButton.onClick.AddListener(() =>
+                        {
+
+                        });
+                        infoButton.onClick.RemoveAllListeners();
+                        infoButton.onClick.AddListener(() =>
+                        {
+
+                        });
+                        tutorialButton.onClick.RemoveAllListeners();
+                        tutorialButton.onClick.AddListener(() =>
+                        {
+
+                        });
                     });
                 }
             }
