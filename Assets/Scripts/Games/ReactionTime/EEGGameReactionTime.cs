@@ -44,7 +44,6 @@ public class EEGGameReactionTime : AbstractEEGGame
 
     private bool tapped = false;
 
-    // Override
     public override void StartEEGGame(Session session)
     {
         base.StartEEGGame(session);
@@ -55,6 +54,12 @@ public class EEGGameReactionTime : AbstractEEGGame
     {
         base.FinishEEGGame();
         GameManager.FinishDataRecord();
+    }
+
+    public override void SetSetting(string settingName, string value)
+    {
+        //TODO: add settings changes
+        return;
     }
 
     private void OnTap()
@@ -72,6 +77,7 @@ public class EEGGameReactionTime : AbstractEEGGame
 
         // Idle
         SetState(State.Idle);
+        OnIdle();
         yield return null; // one frame in 
         // Pause
         SetState(State.Pause);
@@ -126,7 +132,6 @@ public class EEGGameReactionTime : AbstractEEGGame
         }
 
         // Finish
-        SetState(State.Finish);
         OnFinish();
         Running = false;
     }
@@ -151,6 +156,11 @@ public class EEGGameReactionTime : AbstractEEGGame
     {
         currentState = newState;
         Debug.Log($"[StateMachine] State: {newState}  (counter={counter})");
+    }
+
+    private void OnIdle()
+    {
+        UIManagerReactionTime.GetInstance().ShowPanel("GamePanel");
     }
 
     private void OnStimulusShow(StimulusType stimulus)
@@ -185,7 +195,7 @@ public class EEGGameReactionTime : AbstractEEGGame
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (Input.GetMouseButtonDown(0))
         {
             OnTap();
         }

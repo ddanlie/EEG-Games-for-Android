@@ -30,14 +30,15 @@ public abstract class AbstractEEGGame : MonoBehaviour
     // To Extend
     public virtual void StartEEGGame(Session session)
     {
-        this.session = session;
         if (Running) return;
+        this.session = session;
     }
 
     // To Extend
     protected virtual void FinishEEGGame()
     {
-
         Running = false;
     }
+
+    public abstract void SetSetting(string settingName, string value);
 }

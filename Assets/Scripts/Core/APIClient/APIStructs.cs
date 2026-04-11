@@ -62,3 +62,10 @@ public struct GeneralGameInfo
     public string domain;
     public string subdomain;
 }
+
+[Serializable]
+public struct EEGGameInfo
+{
+    GeneralGameInfo generalInfo;
+    public string[] biomarkersMeasured;
+}

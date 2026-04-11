@@ -4,9 +4,9 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
-using static System.Net.Mime.MediaTypeNames;
 using Unity.VisualScripting;
 using UnityEngine.UIElements;
+using System.Threading.Tasks;
 
 // Main ui manager:
 // - reacts to menu activities, packs messages for game manager
@@ -18,15 +18,16 @@ public class UIManagerGameScene : MonoBehaviour
     [Header("General Dependencies")]
     [SerializeField]
     public Canvas canvas;
-    private struct GeneralUIInfo
+
+    public struct GeneralUIInfo
     {
         public bool anonymousUser;
     }
 
     // Main menu info/dependencies
-    private struct MainMenuInfo
+    public struct MainMenuInfo
     {
-
+        public GeneralGameInfo currentFocusedGameInfo;
     }
     [Header("Main Menu")]
     // individual info
@@ -54,8 +55,6 @@ public class UIManagerGameScene : MonoBehaviour
 
     // Singleton
     private static UIManagerGameScene instance = null;
-
-    //private GameManager gameManager;
 
     private void Awake()
     {
@@ -156,13 +155,6 @@ public class UIManagerGameScene : MonoBehaviour
         {
             loginButtonText.text = string.IsNullOrEmpty(value) ? sendCodeString : loginString;
         });
-
-
-        //TextMeshProUGUI statusText = GeneralUtilities.FindChildByName(this.canvas.transform, "LoginStatusText")?.GetComponent<TextMeshProUGUI>();
-        //statusText.enabled = false;
-        //Button loginButon = GeneralUtilities.FindChildByName(this.canvas.transform, "LoginButton")?.GetComponent<Button>();
-        //TMP_InputField emailInput = GeneralUtilities.FindChildByName(this.canvas.transform, "EmailInputField")?.GetComponent<TMP_InputField>();
-        //TMP_InputField codeInput = GeneralUtilities.FindChildByName(this.canvas.transform, "EmailInputField")?.GetComponent<TMP_InputField>();
     }
 
     public async void MainMenu(UserIdentity currentUserIdentity, IndividualInfo individualInfo)
@@ -179,17 +171,27 @@ public class UIManagerGameScene : MonoBehaviour
         else
         {
             this.generalUiInfo.anonymousUser = false;
+
             ShowPanel("LoadingDataPanel");
-            // Get game list
-            GeneralGameListInfo gameList = await GameManager.GetInstance().RequestGeneralEEGGamesInfo();
-            // Get individual info
-            IndividualInfo currentIndividualInfo = await GameManager.GetInstance().RequestIndividualInfo();
-            // Show loaded data
-            // individual info data
+
+            GeneralGameListInfo gameList;
+            IndividualInfo currentIndividualInfo;
+            while (true)
+            {
+                gameList = await GameManager.GetInstance().RequestGeneralEEGGamesInfo();
+                currentIndividualInfo = await GameManager.GetInstance().RequestIndividualInfo();
+
+                if(!gameList.Equals(default(GeneralGameInfo)) && !currentIndividualInfo.Equals(default(IndividualInfo))) 
+                { 
+                    break;
+                }
+            }
+
+            var sortedGames = APIClientUtils.GeneralGameListInfoSortBySubdomain(gameList);
             var individualInfoDict = APIClientUtils.IndividualInfoToDict(currentIndividualInfo);
             // clean content first
             foreach (Transform child in basicInfoScrollViewContent.transform) { Object.Destroy(child.gameObject); }
-            // then add current info
+            // then show current individual info
             foreach (var kvp in individualInfoDict)
             {
                 var row = Instantiate(basicInfoRowPrefab, basicInfoScrollViewContent.transform);
@@ -201,53 +203,64 @@ public class UIManagerGameScene : MonoBehaviour
                 propertyText.text = kvp.Key;
                 valueText.text = kvp.Value;
             }
-            // game list data
-            var sortedGames = APIClientUtils.GeneralGameListInfoSortBySubdomain(gameList);
             // clean game list
             foreach (Transform child in gameListScrollViewContent.transform) { Object.Destroy(child.gameObject); }
             // also find necessary ui elements
             Dictionary<string, GameObject> elements = GeneralUtilities.FindChildrenByNamesRecursive(this.canvas.transform, new List<string>
             {
-                "GameDescriptionText", "TutorialButton", "PlayButton", "InfoButton"
+                "GameDescriptionText", "GameNameText", "TutorialButton", "PlayButton", "InfoButton"
             });
-            TextMeshProUGUI gameDescription = elements["GameDescriptionText"]?.GetComponent<TextMeshProUGUI>();
-            gameDescription.text = "";
             UnityEngine.UI.Button tutorialButton = elements["TutorialButton"]?.GetComponent<UnityEngine.UI.Button>();
             UnityEngine.UI.Button playButton = elements["PlayButton"]?.GetComponent<UnityEngine.UI.Button>();
             UnityEngine.UI.Button infoButton = elements["InfoButton"]?.GetComponent<UnityEngine.UI.Button>();
-            // add current game list content
-            foreach (var kvp in sortedGames)
+            TextMeshProUGUI gameDescription = elements["GameDescriptionText"]?.GetComponent<TextMeshProUGUI>();
+            TextMeshProUGUI gameName = elements["GameNameText"]?.GetComponent<TextMeshProUGUI>();
+            gameDescription.text = "";
+            gameName.text = "";
+            // if some game is/was in focus - bind buttons for it
+            if (!mainMenuInfo.currentFocusedGameInfo.Equals(default(GeneralGameInfo)))
+            {
+                //rebind play, tutorial and info buttons
+                playButton.onClick.RemoveAllListeners();
+                playButton.onClick.AddListener(() =>
+                {
+                    GameManager.GetInstance().StateChangeRequest(GameManager.AppState.DeviceCheck);
+                });
+                infoButton.onClick.RemoveAllListeners();
+                infoButton.onClick.AddListener(() =>
+                {
+                    GameManager.GetInstance().StateChangeRequest(GameManager.AppState.GameInfo);
+                });
+                tutorialButton.onClick.RemoveAllListeners();
+                tutorialButton.onClick.AddListener(() =>
+                {
+                    GameManager.GetInstance().StateChangeRequest(GameManager.AppState.GameTutorial);
+                });
+
+                // change description and name if some game is/was in focus
+                gameName.text = this.mainMenuInfo.currentFocusedGameInfo.name; 
+                gameDescription.text = this.mainMenuInfo.currentFocusedGameInfo.description;
+            }
+            // show current game list content
+            foreach (var gameListKVP in sortedGames)
             {
                 var title = Instantiate(gameListTitleRowPrefab, gameListScrollViewContent.transform).GetComponent<TextMeshProUGUI>();
                 title.transform.SetAsLastSibling();
-                foreach (var gameItemInfo in kvp.Value.games) 
+                foreach (var gameItemInfo in gameListKVP.Value.games) 
                 {
                     var rowButton = Instantiate(gameListRowButtonPrefab, gameListScrollViewContent.transform).GetComponent<UnityEngine.UI.Button>();
                     rowButton.transform.SetAsLastSibling();
                     rowButton.onClick.RemoveAllListeners();
                     rowButton.onClick.AddListener(() => 
-                    { 
-                        //show game description    
+                    {
                         gameDescription.text = gameItemInfo.description;
-                        //rebind play, tutorial and info buttons
-                        playButton.onClick.RemoveAllListeners();
-                        playButton.onClick.AddListener(() =>
-                        {
-
-                        });
-                        infoButton.onClick.RemoveAllListeners();
-                        infoButton.onClick.AddListener(() =>
-                        {
-
-                        });
-                        tutorialButton.onClick.RemoveAllListeners();
-                        tutorialButton.onClick.AddListener(() =>
-                        {
-
-                        });
+                        gameName.text = gameItemInfo.name;
+                        mainMenuInfo.currentFocusedGameInfo = gameItemInfo;
                     });
                 }
             }
+            //TODO: get profile, analysis etc buttons and bind
+
             //Hint:
             //basicInfoScrollViewContent - individual info content object
             //basicInfoRowPrefab         - individual info row with 2 texts - property name and value
@@ -258,6 +271,68 @@ public class UIManagerGameScene : MonoBehaviour
 
             ShowPanel("MainMenuPanel");
         }
+    }
+    
+    public async void DeviceCheck()
+    {
+        Dictionary<string, GameObject> elements = GeneralUtilities.FindChildrenByNamesRecursive(this.canvas.transform, new List<string>
+        {
+            "DeviceCheckGameNameTitle", "DeviceCheckStatusStateText", "DeviceCheckTryConnectButton"
+        });
+        UnityEngine.UI.Button reconnectButton = elements["DeviceCheckTryConnectButton"]?.GetComponent<UnityEngine.UI.Button>();
+        TextMeshProUGUI gameName = elements["DeviceCheckGameNameTitle"]?.GetComponent<TextMeshProUGUI>();
+        TextMeshProUGUI status = elements["DeviceCheckStatusStateText"]?.GetComponent<TextMeshProUGUI>();
+
+        gameName.text = this.mainMenuInfo.currentFocusedGameInfo.name;
+        status.text = "not connected";
+        status.color = new Color(1f, 0.3f, 0.3f); // reddish
+
+
+        reconnectButton.onClick.RemoveAllListeners();
+        reconnectButton.onClick.AddListener(async () =>
+        {
+            status.text = "connecting...";
+            status.color = new Color(0.3f, 0.3f, 1f);
+
+            await Task.Yield();
+
+            bool deviceReady = GameManager.GetInstance().CheckEEGDevice();
+
+            if (deviceReady)
+            {
+                status.text = "connected, redirecting...";
+                status.color = new Color(0.3f, 1f, 0.3f);
+                GameManager.GetInstance().StateChangeRequest(GameManager.AppState.InGameSettings);
+            }
+            else
+            {
+                status.text = "not connected";
+                status.color = new Color(1f, 0.3f, 0.3f);
+            }
+        });
+
+        ShowPanel("DeviceCheckPanel");
+    }
+
+    public async void UserProfile()
+    {
+        ShowPanel("ProfileAnalysisPanel");
+    }
+
+    public async void ProfileAnalysis()
+    {
+        ShowPanel("UserProfilePanel");
+    }
+
+    public async void InGameSettings()
+    {
+        HideAllPanels();
+
+        LoadEEGGameSceneAdditive(
+            GameManager.GetInstance().EEGGameIdToUnitySceneGameName(
+                mainMenuInfo.currentFocusedGameInfo.id
+             )
+        );
     }
 
     // Private section
@@ -276,6 +351,14 @@ public class UIManagerGameScene : MonoBehaviour
         {
             bool isTarget = child.name == panelName;
             child.gameObject.SetActive(!isTarget);
+        }
+    }
+
+    private void HideAllPanels()
+    {
+        foreach (Transform child in this.canvas.transform)
+        {
+            child.gameObject.SetActive(false);
         }
     }
 
@@ -301,10 +384,20 @@ public class UIManagerGameScene : MonoBehaviour
         };
         mainMenuInfo = new MainMenuInfo
         {
-
+            currentFocusedGameInfo = default(GeneralGameInfo)
         };
     }
 
+    // General
+    public void OnWiFiButtonClick()
+    {
+        GeneralUtilities.OpenWifiPanel();
+    }
+
+    public void OnMenuButtonClick()
+    {
+        GameManager.GetInstance().StateChangeRequest(GameManager.AppState.MainMenu);
+    }
 
     // Login Panel 
 
@@ -355,11 +448,6 @@ public class UIManagerGameScene : MonoBehaviour
     {
         GameManager.GetInstance().Logout();
         GameManager.GetInstance().StateChangeRequest(GameManager.AppState.Login);
-    }
-
-    public void OnWiFiButtonClick()
-    {
-        GeneralUtilities.OpenWifiPanel();
     }
 
     public void OnSkipButtonPressed()

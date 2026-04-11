@@ -72,38 +72,6 @@ public class APIClient
         return request.result == UnityWebRequest.Result.Success;
     }
 
-    //public async Task<bool> RequestRegister(string email)
-    //{
-    //    if (StubMode) { await Task.Delay(StubTimerSec); return true; }
-    //    var body = Encoding.UTF8.GetBytes(JsonUtility.ToJson(new EmailRequest { email = email }));
-
-    //    using var request = new UnityWebRequest(BaseUrl + "/auth/register/request", "POST");
-    //    request.uploadHandler = new UploadHandlerRaw(body);
-    //    request.downloadHandler = new DownloadHandlerBuffer();
-    //    request.SetRequestHeader("Content-Type", "application/json");
-
-    //    await request.SendWebRequest();
-    //    return request.result == UnityWebRequest.Result.Success;
-    //}
-
-    //public async Task<UserIdentity> Register(string email, string code)
-    //{
-    //    if (StubMode) { await Task.Delay(StubTimerSec); return new UserIdentity { token = "xxx_stub_token_xxx", userId = "1" }; }
-    //    var body = Encoding.UTF8.GetBytes(JsonUtility.ToJson(new EmailCodeRequest { email = email, code = code }));
-
-    //    using var request = new UnityWebRequest(BaseUrl + "/auth/register", "POST");
-    //    request.uploadHandler = new UploadHandlerRaw(body);
-    //    request.downloadHandler = new DownloadHandlerBuffer();
-    //    request.SetRequestHeader("Content-Type", "application/json");
-
-    //    await request.SendWebRequest();
-    //    if (request.result != UnityWebRequest.Result.Success)
-    //        return default;
-
-    //    var response = JsonUtility.FromJson<UserIdentityResponse>(request.downloadHandler.text);
-    //    return new UserIdentity { token = response.token, userId = response.userId };
-    //}
-
     public async Task<IndividualInfo> GetIndividualInfo(string userId)
     {
         if (StubMode)

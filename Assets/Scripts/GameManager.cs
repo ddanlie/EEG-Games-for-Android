@@ -27,27 +27,31 @@ public class GameManager : MonoBehaviour
         ProfileAnalysis,
         CoordinatorAnalysis,
         GameInfo,
+        GameTutorial,
         CoordinatorProfile,
         DeviceCheck,
 
-        WaitChange,
+        InGameSettings,
+        InGame,
 
-        InGame
+        WaitChange,
     }
 
     // Cache
-    UserIdentity currentUserIdentity;
+    private UserIdentity currentUserIdentity;
 
     // State
-    AppState appState = AppState.Idle;
-    AppState appStateChangeTo = AppState.Idle;
-
+    private AppState appState = AppState.Idle;
+    private AppState appStateChangeTo = AppState.Idle;
 
     // API Client
     APIClient apiclient;
 
     // Local Data
     private const string identityFileName = "identity.txt";
+
+    // Current Game
+    private AbstractEEGGame currentEEGGame = null;
 
     // Singleton
     private static GameManager instance = null;
@@ -151,8 +155,31 @@ public class GameManager : MonoBehaviour
                     }
                 case AppState.MainMenu:
                     {
+                        this.currentEEGGame = null;
                         // TODO get indifivual info
                         UIManagerGameScene.GetInstance().MainMenu(currentUserIdentity, default(IndividualInfo));
+                        appState = AppState.WaitChange;
+                        break;
+                    }
+                case AppState.DeviceCheck:
+                    {
+                        UIManagerGameScene.GetInstance().DeviceCheck();
+                        appState = AppState.WaitChange;
+                        break;
+                    }
+                case AppState.InGameSettings:
+                    {
+                        UIManagerGameScene.GetInstance().InGameSettings();
+                        this.currentEEGGame = UnityEngine.Object.FindFirstObjectByType<AbstractEEGGame>();
+                        appState = AppState.WaitChange;
+                        break;
+                    }
+                case AppState.InGame:
+                    {
+                        //TODO: Start recording EEG data here? 
+                        // Nice place i think, then on finish - stop recording, worth a try
+                        //this.currentEEGGame.StartEEGGame(session);
+                        appState = AppState.WaitChange;
                         break;
                     }
                 case AppState.WaitChange:
@@ -178,13 +205,6 @@ public class GameManager : MonoBehaviour
         GameManager.instance = null;
     }
 
-
-    private bool InitEEGSource()//TODO: place in right place of the algorithm
-    {
-        return CrossPlatformEEGSourceFactory.GetInstance().InitEEGSource();
-    }
-
-
 #if EEG_DEBUG
     private void StreamEEGDataToEEGInfoScene()
     {
@@ -202,6 +222,18 @@ public class GameManager : MonoBehaviour
         }
     }
 #endif
+
+    public string EEGGameIdToUnitySceneGameName(string name)
+    {
+        //TODO: make mapping
+        return name;
+    }
+
+    private bool InitEEGSource()
+    {
+        return CrossPlatformEEGSourceFactory.GetInstance().InitEEGSource();
+    }
+
     public bool StreamEEGSignal()
     {
         return CrossPlatformEEGSourceFactory.GetInstance().StartStreaming();
@@ -213,6 +245,12 @@ public class GameManager : MonoBehaviour
     }
 
     // Public API for game classes
+
+    public bool CheckEEGDevice()
+    {
+        return InitEEGSource();
+    }
+
     public int GetEEGSourceSamplingRate()
     {
         return CrossPlatformEEGSourceFactory.GetInstance().GetSamplingRate();
