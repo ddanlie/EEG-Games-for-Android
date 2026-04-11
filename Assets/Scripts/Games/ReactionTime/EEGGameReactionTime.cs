@@ -44,10 +44,15 @@ public class EEGGameReactionTime : AbstractEEGGame
 
     private bool tapped = false;
 
-    public override void StartEEGGame(Session session)
+    public override void StartEEGGame(Session session, bool tutorial = true)
     {
-        base.StartEEGGame(session);
+        base.StartEEGGame(session, tutorial);
         StartCoroutine(RunStateMachine());
+    }
+
+    protected override IEnumerator StartEEGGame()
+    {
+        yield return RunStateMachine();
     }
 
     protected override void FinishEEGGame()
@@ -73,7 +78,10 @@ public class EEGGameReactionTime : AbstractEEGGame
         Running = true;
         counter = 0;
 
-        GameManager.StartDataRecord();
+        if(!IsTutorial)
+        {
+            GameManager.StartDataRecord();
+        }
 
         // Idle
         SetState(State.Idle);
@@ -183,7 +191,10 @@ public class EEGGameReactionTime : AbstractEEGGame
 
     private void OnFinish()
     {
-        GameManager.FinishDataRecord();
+        if(!IsTutorial)
+        {
+            GameManager.FinishDataRecord();
+        }
         Debug.Log($"[StateMachine] Finished after {counter} trials.");
         
     }

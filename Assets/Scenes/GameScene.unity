@@ -564,7 +564,7 @@ GameObject:
   - component: {fileID: 68404191}
   - component: {fileID: 68404190}
   m_Layer: 0
-  m_Name: GameNameText
+  m_Name: MainMenuGameNameText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4565,7 +4565,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: -0.0000019553236}
+  m_AnchoredPosition: {x: 0, y: 0.00013087469}
   m_SizeDelta: {x: 0, y: 290}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &755330368
@@ -4629,7 +4629,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0.000030517578}
+  m_AnchoredPosition: {x: 0, y: 0.00015258789}
   m_SizeDelta: {x: 312, y: 539.35}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &789685979
@@ -4841,7 +4841,7 @@ GameObject:
   - component: {fileID: 832679553}
   - component: {fileID: 832679552}
   m_Layer: 0
-  m_Name: TutorialButton
+  m_Name: MainMenuTutorialButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5032,7 +5032,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 930941359}
   m_Direction: 2
   m_Value: 0
-  m_Size: 1
+  m_Size: 0.96078867
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -5502,7 +5502,7 @@ GameObject:
   - component: {fileID: 912035438}
   - component: {fileID: 912035437}
   m_Layer: 0
-  m_Name: PlayButton
+  m_Name: MainMenuPlayButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5868,7 +5868,7 @@ GameObject:
   - component: {fileID: 947953766}
   - component: {fileID: 947953765}
   m_Layer: 0
-  m_Name: InfoButton
+  m_Name: MainMenuInfoButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -9999,13 +9999,13 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 736631058}
-        m_TargetAssemblyTypeName: 
-        m_MethodName: 
+      - m_Target: {fileID: 736631059}
+        m_TargetAssemblyTypeName: UIManagerGameScene, Assembly-CSharp
+        m_MethodName: OnMenuButtonClick
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: 
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
           m_IntArgument: 0
           m_FloatArgument: 0
           m_StringArgument: 
@@ -10061,7 +10061,7 @@ GameObject:
   - component: {fileID: 1993258284}
   - component: {fileID: 1993258283}
   m_Layer: 0
-  m_Name: GameDescriptionText
+  m_Name: MainMenuGameDescriptionText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

@@ -31,8 +31,11 @@ public class GameManager : MonoBehaviour
         CoordinatorProfile,
         DeviceCheck,
 
+        InGameTutorialSettings,
+        InGameTutorial,
         InGameSettings,
         InGame,
+
 
         WaitChange,
     }
@@ -93,6 +96,7 @@ public class GameManager : MonoBehaviour
     apiclient = new APIClient();
 #endif
 
+       UIManagerGameScene.GetInstance().UnloadAllScenes();
        RunStateMachine();
     }
 
@@ -117,7 +121,7 @@ public class GameManager : MonoBehaviour
         while(true)
         {
             await Task.Delay(100);
-            Debug.Log("App state: " + appState.ToString());
+            //Debug.Log("App state: " + appState.ToString());
             if (appStateChangeTo != AppState.Idle)
             {
                 appState = appStateChangeTo;
@@ -135,7 +139,7 @@ public class GameManager : MonoBehaviour
                     {
                         UIManagerGameScene.GetInstance().TryAutoLogin();
                         UserIdentity result = await TryAutoLogin();
-                        result = default(UserIdentity);
+                        result = default(UserIdentity);//TODO: comment
                         if (result.Equals(default(UserIdentity)))
                         {
                             appState = AppState.Login;
@@ -143,7 +147,6 @@ public class GameManager : MonoBehaviour
                         else
                         {
                             appState = AppState.MainMenu;
-                            currentUserIdentity = result;
                         }
                         break;
                     }
@@ -157,8 +160,36 @@ public class GameManager : MonoBehaviour
                     {
                         this.currentEEGGame = null;
                         // TODO get indifivual info
-                        UIManagerGameScene.GetInstance().MainMenu(currentUserIdentity, default(IndividualInfo));
+                        try
+                        {
+                            UIManagerGameScene.GetInstance().MainMenu(currentUserIdentity, default(IndividualInfo));
+
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.LogException(ex);
+                            Debug.unityLogger.logEnabled = false;
+                        }
                         appState = AppState.WaitChange;
+                        break;
+                    }
+                case AppState.GameInfo:
+                    {
+                        UIManagerGameScene.GetInstance().GameInfo();
+                        appState = AppState.WaitChange;
+                        break;
+                    }
+                case AppState.InGameTutorialSettings:
+                    {
+                        UIManagerGameScene.GetInstance().InGameTutorialSettings();
+                        this.currentEEGGame = UnityEngine.Object.FindFirstObjectByType<AbstractEEGGame>();
+                        appState = AppState.WaitChange;
+                        break;
+                    }
+                case AppState.InGameTutorial:
+                    {
+                        appState = AppState.WaitChange;
+                        //this.currentEEGGame.StartEEGGame(session);
                         break;
                     }
                 case AppState.DeviceCheck:
@@ -223,10 +254,10 @@ public class GameManager : MonoBehaviour
     }
 #endif
 
-    public string EEGGameIdToUnitySceneGameName(string name)
+    public string EEGGameIdToUnitySceneGameName(string id)
     {
         //TODO: make mapping
-        return name;
+        return "ReactionTime";
     }
 
     private bool InitEEGSource()
@@ -294,11 +325,16 @@ public class GameManager : MonoBehaviour
     {
         // Try to find token
         var identity = LocalStorage.Load<UserIdentity>(identityFileName);
-        if (string.IsNullOrEmpty(identity.token)) { return default; }
+        if (string.IsNullOrEmpty(identity.token)) 
+        {
+            currentUserIdentity = default(UserIdentity);
+            return default; 
+        }
         var userIdentity = await apiclient.Login(identity.token);
         if (string.IsNullOrEmpty(userIdentity.userId) || identity.userId != userIdentity.userId) { return default; }
         // Save data
         LocalStorage.Save<UserIdentity>(identityFileName, userIdentity);
+        currentUserIdentity = userIdentity;
         return userIdentity;
 
     }
@@ -313,9 +349,14 @@ public class GameManager : MonoBehaviour
     public async Task<string> Login(string email, string code)
     {
         var userIdentity = await apiclient.Login(email, code);
-        if (string.IsNullOrEmpty(userIdentity.userId) || string.IsNullOrEmpty(userIdentity.token)) { return null; }
+        if (string.IsNullOrEmpty(userIdentity.userId) || string.IsNullOrEmpty(userIdentity.token)) 
+        {
+            currentUserIdentity = default(UserIdentity);
+            return null; 
+        }
         // save data
         LocalStorage.Save<UserIdentity>(identityFileName, userIdentity);
+        currentUserIdentity = userIdentity;
         return userIdentity.userId;
     }
 

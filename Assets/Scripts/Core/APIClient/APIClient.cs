@@ -10,7 +10,7 @@ public class APIClient
     private const string BaseUrl = "xxx";
     private bool StubMode;
     private int StubTimerSec;// how long stub operations would last [seconds]
-    public APIClient(bool StubMode = false, int StubTimerSec=4000) 
+    public APIClient(bool StubMode = false, int StubTimerSec=3000) 
     {
         this.StubMode = StubMode;
         this.StubTimerSec = StubTimerSec;
@@ -98,6 +98,7 @@ public class APIClient
     {
         if (StubMode)
         {
+            await Task.Delay(StubTimerSec);
             return new GeneralGameListInfo
             {
                 games = new[]

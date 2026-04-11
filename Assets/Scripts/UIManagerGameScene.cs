@@ -115,7 +115,7 @@ public class UIManagerGameScene : MonoBehaviour
     public void LoadEEGGameSceneAdditive(string sceneName)
     {
         this.UnloadAllScenes();
-        SceneManager.LoadScene("gameName", LoadSceneMode.Additive);
+        SceneManager.LoadScene(sceneName, LoadSceneMode.Additive);
     }
 
 
@@ -176,29 +176,34 @@ public class UIManagerGameScene : MonoBehaviour
 
             GeneralGameListInfo gameList;
             IndividualInfo currentIndividualInfo;
+            Debug.Log("Entering while loop to request info...");
             while (true)
             {
                 gameList = await GameManager.GetInstance().RequestGeneralEEGGamesInfo();
                 currentIndividualInfo = await GameManager.GetInstance().RequestIndividualInfo();
 
-                if(!gameList.Equals(default(GeneralGameInfo)) && !currentIndividualInfo.Equals(default(IndividualInfo))) 
-                { 
+                if(!gameList.Equals(default(GeneralGameListInfo)) && !currentIndividualInfo.Equals(default(IndividualInfo))) 
+                {
                     break;
                 }
             }
-
+            Debug.Log("Info acquired");
             var sortedGames = APIClientUtils.GeneralGameListInfoSortBySubdomain(gameList);
             var individualInfoDict = APIClientUtils.IndividualInfoToDict(currentIndividualInfo);
             // clean content first
             foreach (Transform child in basicInfoScrollViewContent.transform) { Object.Destroy(child.gameObject); }
             // then show current individual info
+            Debug.Log("Adding individual info...");
             foreach (var kvp in individualInfoDict)
             {
                 var row = Instantiate(basicInfoRowPrefab, basicInfoScrollViewContent.transform);
                 row.transform.SetAsLastSibling();
+                Debug.Log("Row instantiated: " + row.ToString());
 
                 TextMeshProUGUI propertyText = row.transform.Find("InfoRowProperty").GetComponent<TextMeshProUGUI>();
                 TextMeshProUGUI valueText = row.transform.Find("InfoRowValue").GetComponent<TextMeshProUGUI>();
+
+                Debug.Log("Setting row data");
 
                 propertyText.text = kvp.Key;
                 valueText.text = kvp.Value;
@@ -206,15 +211,16 @@ public class UIManagerGameScene : MonoBehaviour
             // clean game list
             foreach (Transform child in gameListScrollViewContent.transform) { Object.Destroy(child.gameObject); }
             // also find necessary ui elements
+            Debug.Log("Looking for main menu UI elements");
             Dictionary<string, GameObject> elements = GeneralUtilities.FindChildrenByNamesRecursive(this.canvas.transform, new List<string>
             {
-                "GameDescriptionText", "GameNameText", "TutorialButton", "PlayButton", "InfoButton"
+                "MainMenuGameDescriptionText", "MainMenuGameNameText", "MainMenuTutorialButton", "MainMenuPlayButton", "MainMenuInfoButton"
             });
-            UnityEngine.UI.Button tutorialButton = elements["TutorialButton"]?.GetComponent<UnityEngine.UI.Button>();
-            UnityEngine.UI.Button playButton = elements["PlayButton"]?.GetComponent<UnityEngine.UI.Button>();
-            UnityEngine.UI.Button infoButton = elements["InfoButton"]?.GetComponent<UnityEngine.UI.Button>();
-            TextMeshProUGUI gameDescription = elements["GameDescriptionText"]?.GetComponent<TextMeshProUGUI>();
-            TextMeshProUGUI gameName = elements["GameNameText"]?.GetComponent<TextMeshProUGUI>();
+            UnityEngine.UI.Button tutorialButton = elements["MainMenuTutorialButton"]?.GetComponent<UnityEngine.UI.Button>();
+            UnityEngine.UI.Button playButton = elements["MainMenuPlayButton"]?.GetComponent<UnityEngine.UI.Button>();
+            UnityEngine.UI.Button infoButton = elements["MainMenuInfoButton"]?.GetComponent<UnityEngine.UI.Button>();
+            TextMeshProUGUI gameDescription = elements["MainMenuGameDescriptionText"]?.GetComponent<TextMeshProUGUI>();
+            TextMeshProUGUI gameName = elements["MainMenuGameNameText"]?.GetComponent<TextMeshProUGUI>();
             gameDescription.text = "";
             gameName.text = "";
             // if some game is/was in focus - bind buttons for it
@@ -234,7 +240,7 @@ public class UIManagerGameScene : MonoBehaviour
                 tutorialButton.onClick.RemoveAllListeners();
                 tutorialButton.onClick.AddListener(() =>
                 {
-                    GameManager.GetInstance().StateChangeRequest(GameManager.AppState.GameTutorial);
+                    GameManager.GetInstance().StateChangeRequest(GameManager.AppState.InGameTutorial);
                 });
 
                 // change description and name if some game is/was in focus
@@ -242,20 +248,23 @@ public class UIManagerGameScene : MonoBehaviour
                 gameDescription.text = this.mainMenuInfo.currentFocusedGameInfo.description;
             }
             // show current game list content
+            Debug.Log("Adding game list data ");
             foreach (var gameListKVP in sortedGames)
             {
-                var title = Instantiate(gameListTitleRowPrefab, gameListScrollViewContent.transform).GetComponent<TextMeshProUGUI>();
-                title.transform.SetAsLastSibling();
+                var titlePrefab = Instantiate(gameListTitleRowPrefab, gameListScrollViewContent.transform);
+                titlePrefab.transform.SetAsLastSibling();
+                titlePrefab.transform.GetComponentInChildren<TextMeshProUGUI>().text = gameListKVP.Key; // set subdomain name
                 foreach (var gameItemInfo in gameListKVP.Value.games) 
                 {
                     var rowButton = Instantiate(gameListRowButtonPrefab, gameListScrollViewContent.transform).GetComponent<UnityEngine.UI.Button>();
                     rowButton.transform.SetAsLastSibling();
+                    rowButton.GetComponentInChildren<TextMeshProUGUI>().text = gameItemInfo.name;
                     rowButton.onClick.RemoveAllListeners();
                     rowButton.onClick.AddListener(() => 
                     {
-                        gameDescription.text = gameItemInfo.description;
-                        gameName.text = gameItemInfo.name;
                         mainMenuInfo.currentFocusedGameInfo = gameItemInfo;
+                        gameName.text = gameItemInfo.name;
+                        gameDescription.text = gameItemInfo.description;
                     });
                 }
             }
@@ -273,6 +282,11 @@ public class UIManagerGameScene : MonoBehaviour
         }
     }
     
+    public async void GameInfo()
+    {
+        ShowPanel("GameInfoPanel");
+    }
+
     public async void DeviceCheck()
     {
         Dictionary<string, GameObject> elements = GeneralUtilities.FindChildrenByNamesRecursive(this.canvas.transform, new List<string>
@@ -314,6 +328,31 @@ public class UIManagerGameScene : MonoBehaviour
         ShowPanel("DeviceCheckPanel");
     }
 
+
+    // Must load the scene, can't be async
+    public void InGameTutorialSettings()
+    {
+        HideAllPanels();
+
+        LoadEEGGameSceneAdditive(
+            GameManager.GetInstance().EEGGameIdToUnitySceneGameName(
+                mainMenuInfo.currentFocusedGameInfo.id
+             )
+        );
+    }
+
+    // Must load the scene, can't be async
+    public void InGameSettings()
+    {
+        HideAllPanels();
+
+        LoadEEGGameSceneAdditive(
+            GameManager.GetInstance().EEGGameIdToUnitySceneGameName(
+                mainMenuInfo.currentFocusedGameInfo.id
+             )
+        );
+    }
+
     public async void UserProfile()
     {
         ShowPanel("ProfileAnalysisPanel");
@@ -324,16 +363,6 @@ public class UIManagerGameScene : MonoBehaviour
         ShowPanel("UserProfilePanel");
     }
 
-    public async void InGameSettings()
-    {
-        HideAllPanels();
-
-        LoadEEGGameSceneAdditive(
-            GameManager.GetInstance().EEGGameIdToUnitySceneGameName(
-                mainMenuInfo.currentFocusedGameInfo.id
-             )
-        );
-    }
 
     // Private section
     private void ShowPanel(string panelName)
