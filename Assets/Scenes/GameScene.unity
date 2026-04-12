@@ -2145,8 +2145,8 @@ RectTransform:
   - {fileID: 1998293024}
   - {fileID: 136421826}
   - {fileID: 479083987}
-  - {fileID: 1382796274}
   - {fileID: 1170404625}
+  - {fileID: 1382796274}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -5032,7 +5032,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 930941359}
   m_Direction: 2
   m_Value: 0
-  m_Size: 0.96078867
+  m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:

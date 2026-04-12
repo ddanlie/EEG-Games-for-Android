@@ -6,6 +6,8 @@ using UXF;
 
 public class EEGGameReactionTime : AbstractEEGGame
 {
+    public AudioSource audioSource;
+    public AudioClip N1Sound;
     public enum State
     {
         Idle,
@@ -20,7 +22,8 @@ public class EEGGameReactionTime : AbstractEEGGame
 
     public enum StimulusType
     {
-        P300,
+        P300a,
+        P300b,
         P1,
         N1
     }
@@ -30,12 +33,15 @@ public class EEGGameReactionTime : AbstractEEGGame
     [SerializeField] private float waitForReactionDuration = 2f;   // W seconds
     [SerializeField] private float pauseBetweenTrials = 2f;        // X seconds (pause between trials)
     [SerializeField] private int maxTrials = 20;                   // X total trials (counter >= X -> finish)
-    [SerializeField] private int p300OnlyThreshold = 5;            // counter < 5 => always P300
+    [SerializeField] private int p300aOnlyThreshold = 5;           // counter < 5 => always P300
 
     [Header("Probabilities (counter > 5) — must sum to 1")]
     [SerializeField] private float p1Probability = 0.20f;
     [SerializeField] private float p300Probability = 0.75f;
     [SerializeField] private float n1Probability = 0.05f;
+
+    [SerializeField] private float p300aProbability = 0.2f;
+    [SerializeField] private float p300bProbability = 0.8f;
 
     [Header("Runtime Info (read-only)")]
     [SerializeField] private State currentState = State.Idle;
@@ -146,17 +152,31 @@ public class EEGGameReactionTime : AbstractEEGGame
 
     private StimulusType PickStimulus()
     {
-        if (counter < p300OnlyThreshold)
-            return StimulusType.P300;
+        if (counter < p300aOnlyThreshold)
+            return StimulusType.P300a;
 
         float roll = Random.value;
 
         if (roll < p1Probability)
+        {
             return StimulusType.P1;
+        }
         else if (roll < p1Probability + p300Probability)
-            return StimulusType.P300;
+        {
+            float p3roll = Random.value;
+            if(p3roll < p300aProbability)
+            {
+                return StimulusType.P300a;
+            }
+            else
+            {
+                return StimulusType.P300b;
+            }
+        }
         else
+        {
             return StimulusType.N1;
+        }
     }
 
     // Callbacks to override/extend
