@@ -7,7 +7,9 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Unity.VisualScripting;
 using UnityEngine;
+using UXF;
 using static GameManager;
+using static UIManagerGameScene;
 
 // Main "driver" class - starts the gui,
 // - manages EEG source and EEG games start/end/data record
@@ -40,8 +42,12 @@ public class GameManager : MonoBehaviour
         WaitChange,
     }
 
+    // Local Data
+    private const string identityFileName = "identity.txt";
+    
     // Cache
     private UserIdentity currentUserIdentity;
+    private AbstractEEGGame currentEEGGame = null;
 
     // State
     private AppState appState = AppState.Idle;
@@ -50,11 +56,9 @@ public class GameManager : MonoBehaviour
     // API Client
     APIClient apiclient;
 
-    // Local Data
-    private const string identityFileName = "identity.txt";
+    // UXF Session
+    Session uxfSession = Session.instance;
 
-    // Current Game
-    private AbstractEEGGame currentEEGGame = null;
 
     // Singleton
     private static GameManager instance = null;
@@ -139,7 +143,7 @@ public class GameManager : MonoBehaviour
                     {
                         UIManagerGameScene.GetInstance().TryAutoLogin();
                         UserIdentity result = await TryAutoLogin();
-                        result = default(UserIdentity);//TODO: comment
+                        //result = default(UserIdentity);//TODO: comment
                         if (result.Equals(default(UserIdentity)))
                         {
                             appState = AppState.Login;
@@ -189,7 +193,7 @@ public class GameManager : MonoBehaviour
                 case AppState.InGameTutorial:
                     {
                         appState = AppState.WaitChange;
-                        //this.currentEEGGame.StartEEGGame(session);
+                        this.currentEEGGame.StartEEGGame(uxfSession);
                         break;
                     }
                 case AppState.DeviceCheck:
@@ -209,7 +213,16 @@ public class GameManager : MonoBehaviour
                     {
                         //TODO: Start recording EEG data here? 
                         // Nice place i think, then on finish - stop recording, worth a try
-                        //this.currentEEGGame.StartEEGGame(session);
+                        uxfSession.Begin(
+                            GameManager.GetInstance().EEGGameIdToUnitySceneGameName(
+                                UIManagerGameScene.GetInstance().mainMenuInfo.currentFocusedGameInfo.id
+                            ),
+                            currentUserIdentity.userId,
+                            1,
+                            null,
+                            new Settings(currentEEGGame.GetCurrentGameSettings())
+                        );
+                        this.currentEEGGame.StartEEGGame(uxfSession);
                         appState = AppState.WaitChange;
                         break;
                     }

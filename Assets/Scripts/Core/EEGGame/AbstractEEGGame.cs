@@ -12,7 +12,6 @@ public abstract class AbstractEEGGame : MonoBehaviour
     public bool IsTutorial { get; protected set; }
 
     // Game Manager instance shorter name
-
     protected GameManager GameManager { get; private set; } = null;
 
 
@@ -47,4 +46,6 @@ public abstract class AbstractEEGGame : MonoBehaviour
     }
 
     public abstract void SetSetting(string settingName, string value);
+
+    public abstract Dictionary<string, object> GetCurrentGameSettings();
 }

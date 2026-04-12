@@ -6,8 +6,6 @@ using UXF;
 
 public class EEGGameReactionTime : AbstractEEGGame
 {
-    public AudioSource audioSource;
-    public AudioClip N1Sound;
     public enum State
     {
         Idle,
@@ -22,6 +20,7 @@ public class EEGGameReactionTime : AbstractEEGGame
 
     public enum StimulusType
     {
+        DefaultNostim,
         P300a,
         P300b,
         P1,
@@ -71,6 +70,12 @@ public class EEGGameReactionTime : AbstractEEGGame
     {
         //TODO: add settings changes
         return;
+    }
+
+    public override Dictionary<string, object> GetCurrentGameSettings()
+    {
+        //TODO: return settings
+        return null;
     }
 
     private void OnTap()
@@ -188,25 +193,26 @@ public class EEGGameReactionTime : AbstractEEGGame
 
     private void OnIdle()
     {
-        UIManagerReactionTime.GetInstance().ShowPanel("GamePanel");
+        UIManagerReactionTime.GetInstance().StartState();
+        UIManagerReactionTime.GetInstance().ShowStimulus(StimulusType.DefaultNostim);
     }
 
     private void OnStimulusShow(StimulusType stimulus)
     {
         Debug.Log($"[StateMachine] Showing stimulus: {stimulus}");
-        // TODO: trigger visual / audio stimulus
+        UIManagerReactionTime.GetInstance().ShowStimulus(stimulus);
     }
 
     private void OnRegistered(float reactionTime)
     {
         Debug.Log($"[StateMachine] Tapped! Reaction time: {reactionTime:F3}s");
-        // TODO: record reaction time, update UI, etc
+        UIManagerReactionTime.GetInstance().ShowStimulus(StimulusType.DefaultNostim);
     }
 
     private void OnReactTooLong()
     {
         Debug.Log("[StateMachine] No reaction — too slow!");
-        // TODO: show "too slow" feedback
+        UIManagerReactionTime.GetInstance().ShowStimulus(StimulusType.DefaultNostim);
     }
 
     private void OnFinish()

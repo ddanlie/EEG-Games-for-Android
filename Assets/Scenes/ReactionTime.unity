@@ -375,8 +375,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 33678cbeddc5520469901de70badbfd5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  audioSource: {fileID: 1842307681}
-  N1Sound: {fileID: 8300000, guid: e8a71142b96ee3a458359d7d673e29f6, type: 3}
   initialPauseDuration: 0.5
   waitForReactionDuration: 2
   pauseBetweenTrials: 2
@@ -1009,6 +1007,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   canvas: {fileID: 965106342}
+  defaultStimulusPanel: {fileID: 75622850}
+  defaultStimulusP3aImage: {fileID: 770633609}
+  defaultStimulusP3bImage: {fileID: 474060668}
+  p1StimulusPanel: {fileID: 1373265492}
+  n1StimulusPanel: {fileID: 11941128}
+  audioSource: {fileID: 1842307681}
+  N1Sound: {fileID: 8300000, guid: e8a71142b96ee3a458359d7d673e29f6, type: 3}
 --- !u!1 &904712456
 GameObject:
   m_ObjectHideFlags: 0

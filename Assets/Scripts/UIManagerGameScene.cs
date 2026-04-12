@@ -43,8 +43,8 @@ public class UIManagerGameScene : MonoBehaviour
     [SerializeField]
     private GameObject gameListRowButtonPrefab;
 
-    private GeneralUIInfo generalUiInfo;
-    private MainMenuInfo mainMenuInfo;
+    public GeneralUIInfo generalUiInfo;
+    public MainMenuInfo mainMenuInfo;
 
     private enum UIState
     {
