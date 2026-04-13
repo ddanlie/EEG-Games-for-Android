@@ -185,6 +185,16 @@ public abstract class AbstractEEGSignalSource : MonoBehaviour
         concurrentEEGDataQueue.Enqueue(item);
     }
 
+    public List<double[]> GetPreciceRecordFilledBufferAsListAndClear()
+    {
+        var list = new List<double[]>();
+        while (concurrentEEGDataQueue.TryDequeue(out double[] sample))
+        {
+            list.Add(sample);
+        }
+        return list;
+    }
+
     public bool StopStreaming()
     {
         if (!this.sourceStreaming) { return true; }

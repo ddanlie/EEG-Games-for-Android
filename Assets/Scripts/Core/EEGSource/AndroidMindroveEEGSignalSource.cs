@@ -83,7 +83,7 @@ public class AndroidMindroveEEGSignalSource : AbstractEEGSignalSource
         double ch7 = ((AndroidJavaObject)sensorData).Get<double>("channel7");
         double ch8 = ((AndroidJavaObject)sensorData).Get<double>("channel8");
 
-        AssignPreciseStreamData(new double[] { ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8 });
+        AssignPreciseStreamData(new double[] { ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() });
 
         //Debug.Log($"Asking sensor data for values: {ch1} {ch2} {ch3} {ch4} {ch5} {ch6} {ch7} {ch8}");
 

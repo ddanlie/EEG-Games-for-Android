@@ -1,6 +1,8 @@
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using UnityEngine;
+using UXF;
 
 public class GeneralUtilities
 {
@@ -68,5 +70,36 @@ public class GeneralUtilities
         currentActivity.Call("startActivity", intent);
     }
 #endif
+    }
+
+    public static void SaveEEGListAsTrialData(
+        List<double[]> data,
+        Session session,
+        string dataName = "eeg_data")
+    {
+        if (data.Count == 0) { return;  };
+
+        // make headers
+        int channelCount = data[0].Length;
+        string[] headers = new string[channelCount];
+        for (int i = 0; i < channelCount-1; i++)
+        {
+            headers[i] = $"channel_{i + 1}";
+        }
+        headers[headers.Length - 1] = "unix_timestamp_ms";
+
+        // fill UXFDataTable
+        var table = new UXFDataTable(headers);
+        foreach (var sample in data)
+        {
+            var row = new UXFDataRow();
+            for (int i = 0; i < channelCount; i++)
+            {
+                row.Add((headers[i], sample[i]));
+            }
+            table.AddCompleteRow(row);
+        }
+
+        session.CurrentTrial.SaveDataTable(table, dataName, UXFDataType.OtherTrialData);
     }
 }

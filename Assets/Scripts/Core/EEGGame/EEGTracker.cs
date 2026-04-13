@@ -5,6 +5,9 @@ using System.Text;
 using System.Threading.Tasks;
 using UXF;
 
+
+//TODO: do not use this, EEG source has all data.
+// modify it or add utilities function to just save source data
 public class EEGTracker : Tracker
 {
     // Define your column headers

@@ -223,7 +223,7 @@ public class GameManager : MonoBehaviour
                             new Settings(currentEEGGame.GetCurrentGameSettings())
                         );
                         await Task.Yield();//wait next frame - this makes sure the session was initialized
-                        this.currentEEGGameEventLogger = new EventLogger(Time.time);
+                        this.currentEEGGameEventLogger = new EventLogger();
                         this.currentEEGGame.StartEEGGame(uxfSession, currentEEGGameEventLogger);
                         appState = AppState.WaitChange;
                         break;
@@ -323,24 +323,17 @@ public class GameManager : MonoBehaviour
         this.StopEEGStream();
     }
 
-    public void RegisterEvent(EEGEvent e)
-    {
-
-    }
-
-    // Updates event data of given 'eventId' with data inside event 'e'
-    public void UpdateEvent(string eventId, EEGEvent e)
-    {
-
-    }
-
-    public float GetTimeElapsed()
-    {
-        return 0f;
-    }
-
     // Public API for UI managers
 
+
+    //TODO: use this
+    public void SaveRecordedEEGData()
+    {
+        GeneralUtilities.SaveEEGListAsTrialData(
+            CrossPlatformEEGSourceFactory.GetInstance().GetPreciceRecordFilledBufferAsListAndClear(),
+            this.uxfSession
+        );            
+    }
 
     // Looks for locally saved data: <auth token> etc.. and requests server for login
     // if token present + login requests successful returns UserIdentity
