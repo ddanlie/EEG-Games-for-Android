@@ -353,6 +353,11 @@ public class UIManagerGameScene : MonoBehaviour
         );
     }
 
+    public void GameFinished()
+    {
+        ShowPanel("GameFinishedPanel");
+    }
+
     public async void UserProfile()
     {
         ShowPanel("ProfileAnalysisPanel");
@@ -473,16 +478,16 @@ public class UIManagerGameScene : MonoBehaviour
         }
     }
 
-    public void OnLogoutButtonClick()
-    {
-        GameManager.GetInstance().Logout();
-        GameManager.GetInstance().StateChangeRequest(GameManager.AppState.Login);
-    }
-
     public void OnSkipButtonPressed()
     {
         // TODO: add anonymous user functionality
     }
 
     // Main Menu Panel
+    public void OnLogoutButtonClick()
+    {
+        GameManager.GetInstance().Logout();
+        GameManager.GetInstance().StateChangeRequest(GameManager.AppState.Login);
+    }
+
 }

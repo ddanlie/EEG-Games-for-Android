@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -6,7 +7,8 @@ using UXF;
 
 public abstract class AbstractEEGGame : MonoBehaviour
 {
-    private Session session = null;
+    protected Session uxfSession = null;
+    protected EventLogger eventLogger = null;
     public bool Running { get; protected set; } = false;
 
     public bool IsTutorial { get; protected set; }
@@ -29,11 +31,16 @@ public abstract class AbstractEEGGame : MonoBehaviour
     // Override/Extend API
 
     // To Extend
-    public virtual void StartEEGGame(Session session, bool tutorial = true)
+    public virtual void StartEEGGame(Session startedSession, EventLogger eventLogger, bool tutorial = true)
     {
+        if(!startedSession.hasInitialised)
+        {
+            throw new InvalidOperationException("UXF Session must be initialized before game start");
+        }
         if (Running) return;
         IsTutorial = tutorial;
-        this.session = session;
+        this.uxfSession = startedSession;
+        this.eventLogger = eventLogger;
         StartCoroutine(StartEEGGame());
     }
 

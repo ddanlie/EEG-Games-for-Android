@@ -29,7 +29,6 @@ public class GameManager : MonoBehaviour
         ProfileAnalysis,
         CoordinatorAnalysis,
         GameInfo,
-        GameTutorial,
         CoordinatorProfile,
         DeviceCheck,
 
@@ -37,7 +36,7 @@ public class GameManager : MonoBehaviour
         InGameTutorial,
         InGameSettings,
         InGame,
-
+        GameFinished,
 
         WaitChange,
     }
@@ -48,6 +47,7 @@ public class GameManager : MonoBehaviour
     // Cache
     private UserIdentity currentUserIdentity;
     private AbstractEEGGame currentEEGGame = null;
+    private EventLogger currentEEGGameEventLogger = null;
 
     // State
     private AppState appState = AppState.Idle;
@@ -193,7 +193,7 @@ public class GameManager : MonoBehaviour
                 case AppState.InGameTutorial:
                     {
                         appState = AppState.WaitChange;
-                        this.currentEEGGame.StartEEGGame(uxfSession);
+                        this.currentEEGGame.StartEEGGame(uxfSession, null);
                         break;
                     }
                 case AppState.DeviceCheck:
@@ -218,11 +218,22 @@ public class GameManager : MonoBehaviour
                                 UIManagerGameScene.GetInstance().mainMenuInfo.currentFocusedGameInfo.id
                             ),
                             currentUserIdentity.userId,
-                            1,
+                            (int)(UnityEngine.Random.value*10e6),
                             null,
                             new Settings(currentEEGGame.GetCurrentGameSettings())
                         );
-                        this.currentEEGGame.StartEEGGame(uxfSession);
+                        await Task.Yield();//wait next frame - this makes sure the session was initialized
+                        this.currentEEGGameEventLogger = new EventLogger(Time.time);
+                        this.currentEEGGame.StartEEGGame(uxfSession, currentEEGGameEventLogger);
+                        appState = AppState.WaitChange;
+                        break;
+                    }
+                case AppState.GameFinished:
+                    {
+                        uxfSession.CurrentTrial.End();
+                        this.currentEEGGameEventLogger.SaveToTrial(uxfSession.CurrentTrial);//save registered events
+                        uxfSession.End();// noo need to wait 1 frame, flashes immidiately
+                        UIManagerGameScene.GetInstance().GameFinished();
                         appState = AppState.WaitChange;
                         break;
                     }

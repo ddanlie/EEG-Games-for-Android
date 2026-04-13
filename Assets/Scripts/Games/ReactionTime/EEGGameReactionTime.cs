@@ -49,10 +49,9 @@ public class EEGGameReactionTime : AbstractEEGGame
 
     private bool tapped = false;
 
-    public override void StartEEGGame(Session session, bool tutorial = true)
+    public override void StartEEGGame(Session session, EventLogger eventLogger, bool tutorial = true)
     {
-        base.StartEEGGame(session, tutorial);
-        StartCoroutine(RunStateMachine());
+        base.StartEEGGame(session, eventLogger, tutorial);
     }
 
     protected override IEnumerator StartEEGGame()
@@ -113,22 +112,37 @@ public class EEGGameReactionTime : AbstractEEGGame
             // WaitForReaction
             SetState(State.WaitForReaction);
             tapped = false;
-            float elapsed = 0f;
+            float stimulusDuration = 0f;
 
-            while (elapsed < waitForReactionDuration && !tapped)
+            while (stimulusDuration < waitForReactionDuration && !tapped)
             {
-                elapsed += Time.deltaTime;
+                stimulusDuration += Time.deltaTime;
                 yield return null;
             }
 
+
             if (tapped)
             {
+                if(!IsTutorial)
+                {
+                    eventLogger.LogEvent(GetEventLoggerStimulusType(currentStimulus), stimulusDuration, new Dictionary<string, string>
+                    {
+                        { "reacted_in_time", "yes" }
+                    });
+                }
                 // Registered
                 SetState(State.Registered);
-                OnRegistered(elapsed);
+                OnRegistered(stimulusDuration);
             }
             else
             {
+                if (!IsTutorial)
+                {
+                    eventLogger.LogEvent(GetEventLoggerStimulusType(currentStimulus), stimulusDuration, new Dictionary<string, string>
+                    {
+                        { "reacted_in_time", "no" }
+                    });
+                }
                 //ReactTooLong
                 SetState(State.ReactTooLong);
                 OnReactTooLong();
@@ -184,7 +198,14 @@ public class EEGGameReactionTime : AbstractEEGGame
         }
     }
 
-    // Callbacks to override/extend
+    private string GetEventLoggerStimulusType(StimulusType s) => s switch
+    {
+        StimulusType.DefaultNostim => "<NO EVENT>",
+        StimulusType.P300a => "ERP_P3A",
+        StimulusType.P300b => "ERP_P3B",
+        StimulusType.P1 => "ERP_P1",
+        StimulusType.N1 => "ERP_N1"
+     };
     private void SetState(State newState)
     {
         currentState = newState;
@@ -195,6 +216,13 @@ public class EEGGameReactionTime : AbstractEEGGame
     {
         UIManagerReactionTime.GetInstance().StartState();
         UIManagerReactionTime.GetInstance().ShowStimulus(StimulusType.DefaultNostim);
+
+        if(!IsTutorial)
+        {
+            Block block = this.uxfSession.CreateBlock(1);
+            this.uxfSession.BeginNextTrial();
+
+        }
     }
 
     private void OnStimulusShow(StimulusType stimulus)
@@ -220,6 +248,7 @@ public class EEGGameReactionTime : AbstractEEGGame
         if(!IsTutorial)
         {
             GameManager.FinishDataRecord();
+            this.uxfSession.CurrentTrial.End();
         }
         Debug.Log($"[StateMachine] Finished after {counter} trials.");
         
