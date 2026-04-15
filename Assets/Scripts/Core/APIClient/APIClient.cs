@@ -1,7 +1,6 @@
 using System;
 using System.Text;
 using System.Threading.Tasks;
-using Unity.VisualScripting.Antlr3.Runtime;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -110,5 +109,30 @@ public class APIClient
             };
         }
         return default; // TODO - real server request
+    }
+
+
+    // Expects folder path with following file structure:
+    // ./1_eeg_data.csv
+    // ./1_events.csv
+    // 1(one) - is a trial number. Hence only the first trial of the session will be sent
+    public async Task<bool> SendRecoredRunData(string sessionTrialPath)
+    {
+        if(StubMode)
+        {
+            await Task.Delay(StubTimerSec);
+            return true;
+        }
+        return false;//TODO: make real request
+    }
+
+    public async Task<bool> SynchronizeProfileRunsData()
+    {
+        if (StubMode)
+        {
+            await Task.Delay(StubTimerSec);
+            return true;
+        }
+        return false;//TODO: make real request
     }
 }

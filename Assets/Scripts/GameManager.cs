@@ -4,11 +4,14 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UXF;
 using static GameManager;
+using static System.Collections.Specialized.BitVector32;
 using static UIManagerGameScene;
 
 // Main "driver" class - starts the gui,
@@ -43,7 +46,12 @@ public class GameManager : MonoBehaviour
 
     // Local Data
     private const string identityFileName = "identity.txt";
-    
+
+    // UXF data
+    //Application.persistentDataPath/<experimentName>/<participantId>/<sessionNumber>/trial_results/<trialNumber>_events.csv
+    private int trialNumber = 0; // 1 session - 1 run. Assumed, that the device would be taken off right after the game
+    private string uxfExperimentsFolder = "EEG_Games";
+
     // Cache
     private UserIdentity currentUserIdentity;
     private AbstractEEGGame currentEEGGame = null;
@@ -57,8 +65,9 @@ public class GameManager : MonoBehaviour
     APIClient apiclient;
 
     // UXF Session
-    Session uxfSession = Session.instance;
-
+    Session uxfSession;
+    FileSaver uxfFileSaver;
+    
 
     // Singleton
     private static GameManager instance = null;
@@ -95,13 +104,26 @@ public class GameManager : MonoBehaviour
 #endif
 
 #if API_DEBUG
-    apiclient = new APIClient(StubMode: true);
+        apiclient = new APIClient(StubMode: true);
 #else
-    apiclient = new APIClient();
+        apiclient = new APIClient();
 #endif
 
-       UIManagerGameScene.GetInstance().UnloadAllScenes();
-       RunStateMachine();
+        uxfSession = this.gameObject.AddComponent<Session>();
+        uxfFileSaver = this.gameObject.AddComponent<FileSaver>();
+
+        string dataPath = Path.Combine(Application.persistentDataPath, uxfExperimentsFolder);
+        if (!Directory.Exists(dataPath))
+        {
+            Directory.CreateDirectory(dataPath);
+        }
+        uxfFileSaver.storagePath = dataPath;
+
+
+        uxfSession.dataHandlers = new DataHandler[] { uxfFileSaver };
+        uxfSession.dontDestroyOnLoadNewScene = true;
+        UIManagerGameScene.GetInstance().UnloadAllScenes();
+        RunStateMachine();
     }
 
     // Update is called once per frame
@@ -115,9 +137,11 @@ public class GameManager : MonoBehaviour
 
     }
 
+
     public void StateChangeRequest(AppState changeToState)
     {
         appStateChangeTo = changeToState;
+        Debug.Log("App state: " + appStateChangeTo.ToString());
     }
 
     private async void RunStateMachine()
@@ -125,7 +149,6 @@ public class GameManager : MonoBehaviour
         while(true)
         {
             await Task.Delay(100);
-            //Debug.Log("App state: " + appState.ToString());
             if (appStateChangeTo != AppState.Idle)
             {
                 appState = appStateChangeTo;
@@ -181,6 +204,7 @@ public class GameManager : MonoBehaviour
                     {
                         UIManagerGameScene.GetInstance().GameInfo();
                         appState = AppState.WaitChange;
+                        Debug.Log("App state: " + appState.ToString());
                         break;
                     }
                 case AppState.InGameTutorialSettings:
@@ -188,53 +212,86 @@ public class GameManager : MonoBehaviour
                         UIManagerGameScene.GetInstance().InGameTutorialSettings();
                         this.currentEEGGame = UnityEngine.Object.FindFirstObjectByType<AbstractEEGGame>();
                         appState = AppState.WaitChange;
+                        Debug.Log("App state: " + appState.ToString());
                         break;
                     }
                 case AppState.InGameTutorial:
                     {
                         appState = AppState.WaitChange;
                         this.currentEEGGame.StartEEGGame(uxfSession, null);
+                        appState = AppState.WaitChange;
                         break;
                     }
                 case AppState.DeviceCheck:
                     {
                         UIManagerGameScene.GetInstance().DeviceCheck();
                         appState = AppState.WaitChange;
+                        Debug.Log("App state: " + appState.ToString());
                         break;
                     }
                 case AppState.InGameSettings:
                     {
                         UIManagerGameScene.GetInstance().InGameSettings();
-                        this.currentEEGGame = UnityEngine.Object.FindFirstObjectByType<AbstractEEGGame>();
-                        appState = AppState.WaitChange;
+
+                        StartCoroutine(WaitLoad());
+
+                        IEnumerator WaitLoad()
+                        {
+                            string sceneName = UIManagerGameScene.GetInstance()
+                                .mainMenuInfo.currentFocusedGameInfo.id;
+
+                            yield return new WaitUntil(() =>
+                                SceneManager.GetSceneByName(sceneName).isLoaded);
+
+                            currentEEGGame = UnityEngine.Object.FindFirstObjectByType<AbstractEEGGame>();
+                            Debug.Log($"Current EEG game <{currentEEGGame}>");
+
+                            appState = AppState.WaitChange;
+                            Debug.Log("App state: " + appState);
+                        }
+
                         break;
                     }
                 case AppState.InGame:
                     {
                         //TODO: Start recording EEG data here? 
                         // Nice place i think, then on finish - stop recording, worth a try
+
+                        Debug.Log("Experiment name is:");
+                        string experimentName = GameManager.GetInstance().EEGGameIdToUnitySceneGameName(
+                            UIManagerGameScene.GetInstance().mainMenuInfo.currentFocusedGameInfo.id
+                        );
+                        Debug.Log($"<{experimentName}>");
+                        Debug.Log("Participant id is:");
+                        string participantId = currentUserIdentity.userId;
+                        Debug.Log($"<{participantId}>");
+                        Debug.Log("Session number is:");
+                        int sessionNumber = (int)(UnityEngine.Random.value * 10e9);
+                        Debug.Log($"<{sessionNumber}>");
+                        uxfSession.CreateBlock(1);
+                        Debug.Log("Block created");
                         uxfSession.Begin(
-                            GameManager.GetInstance().EEGGameIdToUnitySceneGameName(
-                                UIManagerGameScene.GetInstance().mainMenuInfo.currentFocusedGameInfo.id
-                            ),
-                            currentUserIdentity.userId,
-                            (int)(UnityEngine.Random.value*10e6),
+                            experimentName,
+                            participantId,
+                            sessionNumber,
                             null,
                             new Settings(currentEEGGame.GetCurrentGameSettings())
                         );
-                        await Task.Yield();//wait next frame - this makes sure the session was initialized
+                        Debug.Log("Session initialized");
                         this.currentEEGGameEventLogger = new EventLogger();
                         this.currentEEGGame.StartEEGGame(uxfSession, currentEEGGameEventLogger);
                         appState = AppState.WaitChange;
+                        Debug.Log("App state: " + appState.ToString());
                         break;
                     }
                 case AppState.GameFinished:
                     {
                         uxfSession.CurrentTrial.End();
                         this.currentEEGGameEventLogger.SaveToTrial(uxfSession.CurrentTrial);//save registered events
-                        uxfSession.End();// noo need to wait 1 frame, flashes immidiately
+                        uxfSession.End();// no need to wait 1 frame, flashes immidiately
                         UIManagerGameScene.GetInstance().GameFinished();
                         appState = AppState.WaitChange;
+                        Debug.Log("App state: " + appState.ToString());
                         break;
                     }
                 case AppState.WaitChange:
@@ -410,5 +467,15 @@ public class GameManager : MonoBehaviour
     public async Task<GeneralGameListInfo> RequestGeneralEEGGamesInfo()
     {
         return await apiclient.GetGeneralEEGGamesInfo();
+    }
+
+    public async Task<bool> SendRecoredRunData()
+    {
+        return await apiclient.SendRecoredRunData("abc");
+    }
+
+    public async Task<bool> SynchronizeProfileRunsData()
+    {
+        return await apiclient.SynchronizeProfileRunsData();
     }
 }

@@ -1,7 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.Windows.Forms;
 using UnityEngine;
+using static GameManager;
 
 public class UIManagerReactionTime : MonoBehaviour
 {
@@ -121,5 +121,21 @@ public class UIManagerReactionTime : MonoBehaviour
 
         p1StimulusPanel.SetActive(p1);
         n1StimulusPanel.SetActive(n1);
+    }
+
+    public async void GameFinished()
+    {
+        HideAllPanels();
+        GameManager.GetInstance().StateChangeRequest(AppState.GameFinished);
+    }
+
+
+    void OnApplicationPause(bool pause)
+    {
+        GameManager.GetInstance().StateChangeRequest(AppState.GameFinished);
+    }
+    void OnApplicationQuit()
+    {
+        GameManager.GetInstance().StateChangeRequest(AppState.GameFinished);
     }
 }

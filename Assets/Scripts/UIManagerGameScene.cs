@@ -23,12 +23,19 @@ public class UIManagerGameScene : MonoBehaviour
     {
         public bool anonymousUser;
     }
-
-    // Main menu info/dependencies
     public struct MainMenuInfo
     {
         public GeneralGameInfo currentFocusedGameInfo;
     }
+    public struct GameFinishedInfo
+    {
+        public string syncStatus;
+    }
+
+    public GeneralUIInfo generalUiInfo;
+    public MainMenuInfo mainMenuInfo;
+    public GameFinishedInfo gameFinishedInfo;
+
     [Header("Main Menu")]
     // individual info
     [SerializeField]
@@ -42,9 +49,6 @@ public class UIManagerGameScene : MonoBehaviour
     private GameObject gameListTitleRowPrefab;
     [SerializeField]
     private GameObject gameListRowButtonPrefab;
-
-    public GeneralUIInfo generalUiInfo;
-    public MainMenuInfo mainMenuInfo;
 
     private enum UIState
     {
@@ -223,26 +227,24 @@ public class UIManagerGameScene : MonoBehaviour
             TextMeshProUGUI gameName = elements["MainMenuGameNameText"]?.GetComponent<TextMeshProUGUI>();
             gameDescription.text = "";
             gameName.text = "";
+            playButton.onClick.RemoveAllListeners();
+            playButton.onClick.AddListener(() =>
+            {
+                GameManager.GetInstance().StateChangeRequest(GameManager.AppState.DeviceCheck);
+            });
+            infoButton.onClick.RemoveAllListeners();
+            infoButton.onClick.AddListener(() =>
+            {
+                GameManager.GetInstance().StateChangeRequest(GameManager.AppState.GameInfo);
+            });
+            tutorialButton.onClick.RemoveAllListeners();
+            tutorialButton.onClick.AddListener(() =>
+            {
+                GameManager.GetInstance().StateChangeRequest(GameManager.AppState.InGameTutorial);
+            });
             // if some game is/was in focus - bind buttons for it
             if (!mainMenuInfo.currentFocusedGameInfo.Equals(default(GeneralGameInfo)))
             {
-                //rebind play, tutorial and info buttons
-                playButton.onClick.RemoveAllListeners();
-                playButton.onClick.AddListener(() =>
-                {
-                    GameManager.GetInstance().StateChangeRequest(GameManager.AppState.DeviceCheck);
-                });
-                infoButton.onClick.RemoveAllListeners();
-                infoButton.onClick.AddListener(() =>
-                {
-                    GameManager.GetInstance().StateChangeRequest(GameManager.AppState.GameInfo);
-                });
-                tutorialButton.onClick.RemoveAllListeners();
-                tutorialButton.onClick.AddListener(() =>
-                {
-                    GameManager.GetInstance().StateChangeRequest(GameManager.AppState.InGameTutorial);
-                });
-
                 // change description and name if some game is/was in focus
                 gameName.text = this.mainMenuInfo.currentFocusedGameInfo.name; 
                 gameDescription.text = this.mainMenuInfo.currentFocusedGameInfo.description;
@@ -270,6 +272,8 @@ public class UIManagerGameScene : MonoBehaviour
             }
             //TODO: get profile, analysis etc buttons and bind
 
+            ShowPanel("MainMenuPanel");
+
             //Hint:
             //basicInfoScrollViewContent - individual info content object
             //basicInfoRowPrefab         - individual info row with 2 texts - property name and value
@@ -278,12 +282,16 @@ public class UIManagerGameScene : MonoBehaviour
             //gameListTitleRowPrefab     - game list title text
             //gameListRowButtonPrefab    - game list button to get game info (several buttons under 1 title)
 
-            ShowPanel("MainMenuPanel");
         }
     }
     
     public async void GameInfo()
     {
+        if(this.mainMenuInfo.currentFocusedGameInfo.Equals(default(GeneralGameInfo)))
+        {
+            GameManager.GetInstance().StateChangeRequest(GameManager.AppState.MainMenu);
+            return;
+        }
         ShowPanel("GameInfoPanel");
     }
 
@@ -303,25 +311,30 @@ public class UIManagerGameScene : MonoBehaviour
 
 
         reconnectButton.onClick.RemoveAllListeners();
-        reconnectButton.onClick.AddListener(async () =>
+        reconnectButton.onClick.AddListener(() =>
         {
-            status.text = "connecting...";
-            status.color = new Color(0.3f, 0.3f, 1f);
+            StartCoroutine(Routine());
 
-            await Task.Yield();
-
-            bool deviceReady = GameManager.GetInstance().CheckEEGDevice();
-
-            if (deviceReady)
+            IEnumerator Routine()
             {
-                status.text = "connected, redirecting...";
-                status.color = new Color(0.3f, 1f, 0.3f);
-                GameManager.GetInstance().StateChangeRequest(GameManager.AppState.InGameSettings);
-            }
-            else
-            {
-                status.text = "not connected";
-                status.color = new Color(1f, 0.3f, 0.3f);
+                status.text = "connecting...";
+                status.color = new Color(0.3f, 0.3f, 1f);
+
+                yield return null;
+
+                bool deviceReady = GameManager.GetInstance().CheckEEGDevice();
+
+                if (deviceReady)
+                {
+                    status.text = "connected, redirecting...";
+                    status.color = new Color(0.3f, 1f, 0.3f);
+                    GameManager.GetInstance().StateChangeRequest(GameManager.AppState.InGameSettings);
+                }
+                else
+                {
+                    status.text = "not connected";
+                    status.color = new Color(1f, 0.3f, 0.3f);
+                }
             }
         });
 
@@ -355,7 +368,9 @@ public class UIManagerGameScene : MonoBehaviour
 
     public void GameFinished()
     {
+        UnloadAllScenes();//unload the additive game screen
         ShowPanel("GameFinishedPanel");
+        //
     }
 
     public async void UserProfile()
@@ -419,6 +434,10 @@ public class UIManagerGameScene : MonoBehaviour
         mainMenuInfo = new MainMenuInfo
         {
             currentFocusedGameInfo = default(GeneralGameInfo)
+        };
+        gameFinishedInfo = new GameFinishedInfo
+        {
+            syncStatus = ""
         };
     }
 
@@ -490,4 +509,14 @@ public class UIManagerGameScene : MonoBehaviour
         GameManager.GetInstance().StateChangeRequest(GameManager.AppState.Login);
     }
 
+    // Game Finished Panel
+    public async void OnGameFinishedYesButtonClick()
+    {
+
+    }
+
+    public async void OnGameFinishedNoButtonClicked()
+    {
+
+    }
 }

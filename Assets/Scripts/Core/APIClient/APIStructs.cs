@@ -69,3 +69,18 @@ public struct EEGGameInfo
     GeneralGameInfo generalInfo;
     public string[] biomarkersMeasured;
 }
+
+[Serializable]
+public struct ProfileSessionsSyncInfo
+{
+    string patientId;
+    ProfileSessionInfo[] sessions;
+}
+
+
+[Serializable]
+public struct ProfileSessionInfo
+{
+    string experimentName;
+    string sessionNumber;
+}

@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 using UXF;
 
@@ -74,8 +75,8 @@ public class GeneralUtilities
 
     public static void SaveEEGListAsTrialData(
         List<double[]> data,
-        Session session,
-        string dataName = "eeg_data")
+        Session session
+    )
     {
         if (data.Count == 0) { return;  };
 
@@ -99,7 +100,17 @@ public class GeneralUtilities
             }
             table.AddCompleteRow(row);
         }
+        session.CurrentTrial.SaveDataTable(table, "eeg_data", UXFDataType.OtherTrialData);
+    }
 
-        session.CurrentTrial.SaveDataTable(table, dataName, UXFDataType.OtherTrialData);
+    public static string UXFSingleTrialFolderPath(string experimentName, string patientId, int sessionNumber)
+    {
+        return Path.Combine(Application.persistentDataPath, experimentName, patientId, sessionNumber.ToString());
+    }
+
+    public static ProfileSessionsSyncInfo[] UXFSingleTrialFolderPathParse(string patientId)
+    {
+        //TODO:parse
+        return default;
     }
 }

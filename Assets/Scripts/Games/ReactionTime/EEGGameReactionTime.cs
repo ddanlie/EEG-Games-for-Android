@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 using UXF;
+using static GameManager;
 
 public class EEGGameReactionTime : AbstractEEGGame
 {
@@ -74,7 +75,7 @@ public class EEGGameReactionTime : AbstractEEGGame
     public override Dictionary<string, object> GetCurrentGameSettings()
     {
         //TODO: return settings
-        return null;
+        return new Dictionary<string, object> { {"nothing", "nothing" } };
     }
 
     private void OnTap()
@@ -251,7 +252,7 @@ public class EEGGameReactionTime : AbstractEEGGame
             this.uxfSession.CurrentTrial.End();
         }
         Debug.Log($"[StateMachine] Finished after {counter} trials.");
-        
+        UIManagerReactionTime.GetInstance().GameFinished();
     }
 
     private void Start()
@@ -266,4 +267,5 @@ public class EEGGameReactionTime : AbstractEEGGame
             OnTap();
         }
     }
+
 }

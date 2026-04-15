@@ -27,7 +27,8 @@ public class AndroidMindroveEEGSignalSource : AbstractEEGSignalSource
     // Cross callback eegData setup
     private readonly System.Object crossCallbackLock = new System.Object();
     private double[][] tmpEEGData = null;
-
+    private bool initFlag = false;
+    private bool processingFlag = false;
 
     // Mindrove Kotlin library proxy function - used as a callback to process new EEG data coming
     private class ServerDataProcessCallback : AndroidJavaProxy 
@@ -58,22 +59,54 @@ public class AndroidMindroveEEGSignalSource : AbstractEEGSignalSource
         //    currentActivity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
         //}
         // Initialize the MindRove ServerManager from the AAR
-        this.serverManager = new AndroidJavaObject("mylibrary.mindrove.ServerManager", new ServerDataProcessCallback(this.PassThroughStreamData));
-        if (this.serverManager == null) 
-        {
-            return false;
-        }
-        // Start the server
-        this.serverManager.Call("start");
-        this.serverManager.Call("pause");// do not stream yet
+
         PreciseRecord = true;
-        return true;
+        if(!initFlag)
+        { 
+            this.serverManager = new AndroidJavaObject("mylibrary.mindrove.ServerManager", new ServerDataProcessCallback(this.PassThroughStreamData));
+            if (this.serverManager == null) 
+            {
+                Debug.Log("Android EEG Source is NULL");
+                return false;
+            }
+            this.serverManager.Call("start");
+            
+
+            processingFlag = false;
+            Debug.Log($"EEG source init: {initFlag}, Processing {processingFlag}");
+        }
+
+        Debug.Log($"EEG source init: {initFlag}, Processing {processingFlag}");
+
+        //wait 2 seconds
+        System.Threading.Thread.Sleep(2000);
+
+        //check init call variable
+        if(initFlag)
+        {
+            processingFlag = true;
+            initFlag = false;
+            this.serverManager.Call("pause");// do not stream yet
+            Debug.Log($"EEG source init: {initFlag}, Processing {processingFlag}");
+            return true;
+        }
+        return false;
     }
 
 
     // Called <Sampling Rate (500Hz)> times per second
     private void PassThroughStreamData(object sensorData)
     {
+        //Debug.Log("Data received");
+        if(!processingFlag)
+        {
+            if(!initFlag)
+            {
+                initFlag = true;
+                Debug.Log($"EEG source init: {initFlag}, Processing {processingFlag}");
+                return;
+            }
+        }
         double ch1 = ((AndroidJavaObject)sensorData).Get<double>("channel1");
         double ch2 = ((AndroidJavaObject)sensorData).Get<double>("channel2");
         double ch3 = ((AndroidJavaObject)sensorData).Get<double>("channel3");
