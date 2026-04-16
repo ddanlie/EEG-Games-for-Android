@@ -32,7 +32,7 @@ public class EEGGameReactionTime : AbstractEEGGame
     [SerializeField] private float initialPauseDuration = 2f;
     [SerializeField] private float waitForReactionDuration = 2f;   // W seconds
     [SerializeField] private float pauseBetweenTrials = 2f;        // X seconds (pause between trials)
-    [SerializeField] private int maxTrials = 20;                   // X total trials (counter >= X -> finish)
+    [SerializeField] private int maxTrials = 10;                   // X total trials (counter >= X -> finish)
     [SerializeField] private int p300aOnlyThreshold = 5;           // counter < 5 => always P300
 
     [Header("Probabilities (counter > 5) — must sum to 1")]
@@ -50,9 +50,9 @@ public class EEGGameReactionTime : AbstractEEGGame
 
     private bool tapped = false;
 
-    public override void StartEEGGame(Session session, EventLogger eventLogger, bool tutorial = true)
+    public override void StartEEGGame(Session session, EventLogger eventLogger)
     {
-        base.StartEEGGame(session, eventLogger, tutorial);
+        base.StartEEGGame(session, eventLogger);
     }
 
     protected override IEnumerator StartEEGGame()
@@ -63,7 +63,6 @@ public class EEGGameReactionTime : AbstractEEGGame
     protected override void FinishEEGGame()
     {
         base.FinishEEGGame();
-        GameManager.FinishDataRecord();
     }
 
     public override void SetSetting(string settingName, string value)
@@ -80,13 +79,15 @@ public class EEGGameReactionTime : AbstractEEGGame
 
     private void OnTap()
     {
-        tapped = true;
+        if(currentState == State.WaitForReaction)
+        {
+            tapped = true;
+        }
     }
 
     // Core state machine (single while loop)
     private IEnumerator RunStateMachine()
     {
-        Running = true;
         counter = 0;
 
         if(!IsTutorial)
@@ -97,7 +98,7 @@ public class EEGGameReactionTime : AbstractEEGGame
         // Idle
         SetState(State.Idle);
         OnIdle();
-        yield return null; // one frame in 
+        yield return null;
         // Pause
         SetState(State.Pause);
         yield return new WaitForSeconds(initialPauseDuration);
@@ -111,8 +112,8 @@ public class EEGGameReactionTime : AbstractEEGGame
             yield return null;
 
             // WaitForReaction
-            SetState(State.WaitForReaction);
             tapped = false;
+            SetState(State.WaitForReaction);
             float stimulusDuration = 0f;
 
             while (stimulusDuration < waitForReactionDuration && !tapped)
@@ -217,13 +218,6 @@ public class EEGGameReactionTime : AbstractEEGGame
     {
         UIManagerReactionTime.GetInstance().StartState();
         UIManagerReactionTime.GetInstance().ShowStimulus(StimulusType.DefaultNostim);
-
-        if(!IsTutorial)
-        {
-            Block block = this.uxfSession.CreateBlock(1);
-            this.uxfSession.BeginNextTrial();
-
-        }
     }
 
     private void OnStimulusShow(StimulusType stimulus)
@@ -249,9 +243,9 @@ public class EEGGameReactionTime : AbstractEEGGame
         if(!IsTutorial)
         {
             GameManager.FinishDataRecord();
-            this.uxfSession.CurrentTrial.End();
         }
         Debug.Log($"[StateMachine] Finished after {counter} trials.");
+        FinishEEGGame();
         UIManagerReactionTime.GetInstance().GameFinished();
     }
 
@@ -262,9 +256,14 @@ public class EEGGameReactionTime : AbstractEEGGame
 
     private void Update()
     {
-        if (Input.GetMouseButtonDown(0))
+        if (Input.touchCount > 0)
         {
-            OnTap();
+            Touch touch = Input.GetTouch(0);
+
+            if (touch.phase == TouchPhase.Ended)
+            {
+                OnTap();
+            }
         }
     }
 

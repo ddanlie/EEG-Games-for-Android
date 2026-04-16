@@ -50,12 +50,14 @@ public class GameManager : MonoBehaviour
     // UXF data
     //Application.persistentDataPath/<experimentName>/<participantId>/<sessionNumber>/trial_results/<trialNumber>_events.csv
     private int trialNumber = 0; // 1 session - 1 run. Assumed, that the device would be taken off right after the game
-    private string uxfExperimentsFolder = "EEG_Games";
+    private const string uxfExperimentsFolder = "EEG_Games";
+    private string uxfExperimentsDataPath = null;
 
     // Cache
     private UserIdentity currentUserIdentity;
-    private AbstractEEGGame currentEEGGame = null;
+    public AbstractEEGGame currentEEGGame { get; private set; } = null;
     private EventLogger currentEEGGameEventLogger = null;
+    private string currentSessionPath = null;
 
     // State
     private AppState appState = AppState.Idle;
@@ -112,12 +114,12 @@ public class GameManager : MonoBehaviour
         uxfSession = this.gameObject.AddComponent<Session>();
         uxfFileSaver = this.gameObject.AddComponent<FileSaver>();
 
-        string dataPath = Path.Combine(Application.persistentDataPath, uxfExperimentsFolder);
-        if (!Directory.Exists(dataPath))
+        uxfExperimentsDataPath = Path.Combine(Application.persistentDataPath, uxfExperimentsFolder);
+        if (!Directory.Exists(uxfExperimentsDataPath))
         {
-            Directory.CreateDirectory(dataPath);
+            Directory.CreateDirectory(uxfExperimentsDataPath);
         }
-        uxfFileSaver.storagePath = dataPath;
+        uxfFileSaver.storagePath = uxfExperimentsDataPath;
 
 
         uxfSession.dataHandlers = new DataHandler[] { uxfFileSaver };
@@ -186,11 +188,12 @@ public class GameManager : MonoBehaviour
                 case AppState.MainMenu:
                     {
                         this.currentEEGGame = null;
+                        this.currentEEGGameEventLogger = null;
+                        this.currentSessionPath = null;
                         // TODO get indifivual info
                         try
                         {
-                            UIManagerGameScene.GetInstance().MainMenu(currentUserIdentity, default(IndividualInfo));
-
+                            UIManagerGameScene.GetInstance().MainMenu(currentUserIdentity);
                         }
                         catch (Exception ex)
                         {
@@ -210,9 +213,26 @@ public class GameManager : MonoBehaviour
                 case AppState.InGameTutorialSettings:
                     {
                         UIManagerGameScene.GetInstance().InGameTutorialSettings();
-                        this.currentEEGGame = UnityEngine.Object.FindFirstObjectByType<AbstractEEGGame>();
+
                         appState = AppState.WaitChange;
-                        Debug.Log("App state: " + appState.ToString());
+                        Debug.Log("App state: " + appState);
+                        StartCoroutine(WaitLoad());
+
+                        IEnumerator WaitLoad()
+                        {
+                            string sceneName = EEGGameIdToUnitySceneGameName(
+                                UIManagerGameScene.GetInstance().mainMenuInfo.currentFocusedGameInfo.id
+                            );
+
+                            yield return new WaitUntil(() =>
+                                SceneManager.GetSceneByName(sceneName).isLoaded);
+
+                            currentEEGGame = UnityEngine.Object.FindFirstObjectByType<AbstractEEGGame>();
+                            currentEEGGame.IsTutorial = true;
+                            Debug.Log($"Current EEG game <{currentEEGGame}>");
+                        }
+
+
                         break;
                     }
                 case AppState.InGameTutorial:
@@ -233,21 +253,23 @@ public class GameManager : MonoBehaviour
                     {
                         UIManagerGameScene.GetInstance().InGameSettings();
 
+                        appState = AppState.WaitChange;
+                        Debug.Log("App state: " + appState);
                         StartCoroutine(WaitLoad());
 
                         IEnumerator WaitLoad()
                         {
-                            string sceneName = UIManagerGameScene.GetInstance()
-                                .mainMenuInfo.currentFocusedGameInfo.id;
+                            string sceneName = EEGGameIdToUnitySceneGameName(
+                                UIManagerGameScene.GetInstance().mainMenuInfo.currentFocusedGameInfo.id
+                            );
+                                
 
                             yield return new WaitUntil(() =>
                                 SceneManager.GetSceneByName(sceneName).isLoaded);
 
                             currentEEGGame = UnityEngine.Object.FindFirstObjectByType<AbstractEEGGame>();
-                            Debug.Log($"Current EEG game <{currentEEGGame}>");
-
-                            appState = AppState.WaitChange;
-                            Debug.Log("App state: " + appState);
+                            currentEEGGame.IsTutorial = false;
+                            Debug.Log($"Current EEG game <{currentEEGGame}>");         
                         }
 
                         break;
@@ -268,6 +290,10 @@ public class GameManager : MonoBehaviour
                         Debug.Log("Session number is:");
                         int sessionNumber = (int)(UnityEngine.Random.value * 10e9);
                         Debug.Log($"<{sessionNumber}>");
+
+                        // Remember path
+                        currentSessionPath = UXFSingleTrialFolderPath(experimentName, participantId, sessionNumber);
+
                         uxfSession.CreateBlock(1);
                         Debug.Log("Block created");
                         uxfSession.Begin(
@@ -277,6 +303,7 @@ public class GameManager : MonoBehaviour
                             null,
                             new Settings(currentEEGGame.GetCurrentGameSettings())
                         );
+                        this.uxfSession.BeginNextTrial();
                         Debug.Log("Session initialized");
                         this.currentEEGGameEventLogger = new EventLogger();
                         this.currentEEGGame.StartEEGGame(uxfSession, currentEEGGameEventLogger);
@@ -286,9 +313,15 @@ public class GameManager : MonoBehaviour
                     }
                 case AppState.GameFinished:
                     {
+                        if(this.currentEEGGame.IsTutorial)
+                        {
+                            appState = AppState.MainMenu;
+                            Debug.Log("App state: " + appState.ToString());
+                            break;
+                        }
                         uxfSession.CurrentTrial.End();
                         this.currentEEGGameEventLogger.SaveToTrial(uxfSession.CurrentTrial);//save registered events
-                        uxfSession.End();// no need to wait 1 frame, flashes immidiately
+                        uxfSession.End();// no need to wait 1 frame, flashes 
                         UIManagerGameScene.GetInstance().GameFinished();
                         appState = AppState.WaitChange;
                         Debug.Log("App state: " + appState.ToString());
@@ -469,13 +502,20 @@ public class GameManager : MonoBehaviour
         return await apiclient.GetGeneralEEGGamesInfo();
     }
 
-    public async Task<bool> SendRecoredRunData()
+    public async Task<bool> SendRecordedRunData()
     {
-        return await apiclient.SendRecoredRunData("abc");
+        return await apiclient.SendRecoredRunData(currentSessionPath);
     }
 
+    //TODO: use in user analysis panel
     public async Task<bool> SynchronizeProfileRunsData()
     {
         return await apiclient.SynchronizeProfileRunsData();
+    }
+    // Public API for UI managers - END
+
+    private string UXFSingleTrialFolderPath(string experimentName, string patientId, int sessionNumber)
+    {
+        return Path.Combine(uxfExperimentsDataPath, experimentName, patientId, sessionNumber.ToString());
     }
 }

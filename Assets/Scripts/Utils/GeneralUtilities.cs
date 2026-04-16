@@ -103,11 +103,6 @@ public class GeneralUtilities
         session.CurrentTrial.SaveDataTable(table, "eeg_data", UXFDataType.OtherTrialData);
     }
 
-    public static string UXFSingleTrialFolderPath(string experimentName, string patientId, int sessionNumber)
-    {
-        return Path.Combine(Application.persistentDataPath, experimentName, patientId, sessionNumber.ToString());
-    }
-
     public static ProfileSessionsSyncInfo[] UXFSingleTrialFolderPathParse(string patientId)
     {
         //TODO:parse

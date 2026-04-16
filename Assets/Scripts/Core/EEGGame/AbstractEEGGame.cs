@@ -11,7 +11,7 @@ public abstract class AbstractEEGGame : MonoBehaviour
     protected EventLogger eventLogger = null;
     public bool Running { get; protected set; } = false;
 
-    public bool IsTutorial { get; protected set; }
+    public bool IsTutorial { get; set; } = true;
 
     // Game Manager instance shorter name
     protected GameManager GameManager { get; private set; } = null;
@@ -31,14 +31,14 @@ public abstract class AbstractEEGGame : MonoBehaviour
     // Override/Extend API
 
     // To Extend
-    public virtual void StartEEGGame(Session startedSession, EventLogger eventLogger, bool tutorial = true)
+    public virtual void StartEEGGame(Session startedSession, EventLogger eventLogger)
     {
-        if(!startedSession.hasInitialised)
+        if(!startedSession.hasInitialised && !IsTutorial)
         {
             throw new InvalidOperationException("UXF Session must be initialized before game start");
         }
         if (Running) return;
-        IsTutorial = tutorial;
+        Running = true;
         this.uxfSession = startedSession;
         this.eventLogger = eventLogger;
         StartCoroutine(StartEEGGame());

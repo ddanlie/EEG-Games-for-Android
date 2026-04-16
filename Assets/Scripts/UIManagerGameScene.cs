@@ -149,19 +149,12 @@ public class UIManagerGameScene : MonoBehaviour
         loginButtonText.text = sendCodeString;
         // Add input listeners
         TMP_InputField emailInput = elements["EmailInputField"]?.GetComponent<TMP_InputField>();
-        // I just made button to be interactable all the time
-        //emailInput.onValueChanged.AddListener(value =>
-        //{
-        //    loginButon.interactable = !string.IsNullOrEmpty(value);
-        //});
         TMP_InputField codeInput = elements["VerificationCodeInputField"]?.GetComponent<TMP_InputField>();
-        codeInput.onEndEdit.AddListener(value =>
-        {
-            loginButtonText.text = string.IsNullOrEmpty(value) ? sendCodeString : loginString;
-        });
+        codeInput.onEndEdit.AddListener(LoginPanelOnCodeInputValueEditvalue);
     }
 
-    public async void MainMenu(UserIdentity currentUserIdentity, IndividualInfo individualInfo)
+
+    public async void MainMenu(UserIdentity currentUserIdentity)
     {
         // Check if anonymous user, show limited main menu if true
         if (currentUserIdentity.Equals(default(UserIdentity)))
@@ -230,17 +223,20 @@ public class UIManagerGameScene : MonoBehaviour
             playButton.onClick.RemoveAllListeners();
             playButton.onClick.AddListener(() =>
             {
-                GameManager.GetInstance().StateChangeRequest(GameManager.AppState.DeviceCheck);
+                if (!mainMenuInfo.currentFocusedGameInfo.Equals(default(GeneralGameInfo)))
+                    GameManager.GetInstance().StateChangeRequest(GameManager.AppState.DeviceCheck);
             });
             infoButton.onClick.RemoveAllListeners();
             infoButton.onClick.AddListener(() =>
             {
-                GameManager.GetInstance().StateChangeRequest(GameManager.AppState.GameInfo);
+                if (!mainMenuInfo.currentFocusedGameInfo.Equals(default(GeneralGameInfo)))
+                    GameManager.GetInstance().StateChangeRequest(GameManager.AppState.GameInfo);
             });
             tutorialButton.onClick.RemoveAllListeners();
             tutorialButton.onClick.AddListener(() =>
             {
-                GameManager.GetInstance().StateChangeRequest(GameManager.AppState.InGameTutorial);
+                if (!mainMenuInfo.currentFocusedGameInfo.Equals(default(GeneralGameInfo)))
+                    GameManager.GetInstance().StateChangeRequest(GameManager.AppState.InGameTutorialSettings);
             });
             // if some game is/was in focus - bind buttons for it
             if (!mainMenuInfo.currentFocusedGameInfo.Equals(default(GeneralGameInfo)))
@@ -313,9 +309,9 @@ public class UIManagerGameScene : MonoBehaviour
         reconnectButton.onClick.RemoveAllListeners();
         reconnectButton.onClick.AddListener(() =>
         {
-            StartCoroutine(Routine());
+            StartCoroutine(Reconnect());
 
-            IEnumerator Routine()
+            IEnumerator Reconnect()
             {
                 status.text = "connecting...";
                 status.color = new Color(0.3f, 0.3f, 1f);
@@ -370,7 +366,60 @@ public class UIManagerGameScene : MonoBehaviour
     {
         UnloadAllScenes();//unload the additive game screen
         ShowPanel("GameFinishedPanel");
-        //
+
+        Dictionary<string, GameObject> elements = 
+            GeneralUtilities.FindChildrenByNamesRecursive(this.canvas.transform, new List<string>(new string[]
+            {
+                "GameFinishedSendingResultsPanel", "GameFinishedYesButton", "GameFinishedNoButton", "GameFinishedSendingResultsStatus"
+            }));
+
+        UnityEngine.UI.Button yesButton = elements["GameFinishedYesButton"].GetComponent<UnityEngine.UI.Button>();
+        UnityEngine.UI.Button noButton = elements["GameFinishedNoButton"].GetComponent<UnityEngine.UI.Button>();
+        GameObject sendingResultsPanel = elements["GameFinishedSendingResultsPanel"];
+        TextMeshProUGUI sendStatus = elements["GameFinishedSendingResultsStatus"].GetComponent<TextMeshProUGUI>();
+        sendingResultsPanel.SetActive( false );
+        yesButton.onClick.RemoveAllListeners();
+        yesButton.onClick.AddListener(() =>
+        {
+            yesButton.interactable = false;
+
+            StartCoroutine(SendData());
+
+            IEnumerator SendData()
+            {
+                sendStatus.text = "Sending data, please wait...";
+                sendStatus.color = new Color(0.3f, 0.3f, 1f);
+                var task = GameManager.GetInstance().SendRecordedRunData();
+                yield return new WaitUntil(() => task.IsCompleted);
+                if (task.Exception != null)
+                {
+                    Debug.LogError(task.Exception);
+                    sendStatus.color = new Color(1f, 0.3f, 0.3f);
+                    sendStatus.text = "Something went wrong, try later";
+                }
+                else
+                {
+                    bool result = task.Result;
+                    if (result)
+                    {
+                        sendStatus.text = "Success, redirecting to main menu...";
+                        sendStatus.color = new Color(0.3f, 1f, 0.3f);
+                        noButton.interactable = false;
+                    }
+                    else
+                    {
+                        sendStatus.color = new Color(1f, 0.3f, 0.3f);
+                        sendStatus.text = "Request failed, try later";
+                    }
+                }
+            }
+
+        });
+        noButton.onClick.RemoveAllListeners();
+        noButton.onClick.AddListener(() =>
+        {
+            GameManager.GetInstance().StateChangeRequest(GameManager.AppState.MainMenu);
+        });
     }
 
     public async void UserProfile()
@@ -453,7 +502,16 @@ public class UIManagerGameScene : MonoBehaviour
     }
 
     // Login Panel 
-
+    public void LoginPanelOnCodeInputValueEditvalue(string value)
+    {
+        Dictionary<string, GameObject> elements = GeneralUtilities.FindChildrenByNamesRecursive(this.canvas.transform, new List<string>
+        {
+            "LoginButton"
+        });
+        UnityEngine.UI.Button loginButon = elements["LoginButton"]?.GetComponent<UnityEngine.UI.Button>();
+        TextMeshProUGUI loginButtonText = loginButon.GetComponentInChildren<TextMeshProUGUI>();
+        loginButtonText.text = string.IsNullOrEmpty(value) ? "Send Code" : "Log In";
+    }
     public async void OnLoginButtonClick()
     {
         // Block and read input, wait for the login 

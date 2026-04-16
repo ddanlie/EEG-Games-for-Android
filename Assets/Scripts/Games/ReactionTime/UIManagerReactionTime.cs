@@ -88,7 +88,19 @@ public class UIManagerReactionTime : MonoBehaviour
 
     public void OnReactionTimePlayButtonClick()
     {
-        GameManager.GetInstance().StateChangeRequest(GameManager.AppState.InGame);
+        if(GameManager.GetInstance().currentEEGGame == null)
+        {
+            return;
+        }
+
+        if (GameManager.GetInstance().currentEEGGame.IsTutorial)
+        {
+            GameManager.GetInstance().StateChangeRequest(GameManager.AppState.InGameTutorial);
+        }
+        else
+        {
+            GameManager.GetInstance().StateChangeRequest(GameManager.AppState.InGame);
+        }
     }
 
 
@@ -126,7 +138,13 @@ public class UIManagerReactionTime : MonoBehaviour
     public async void GameFinished()
     {
         HideAllPanels();
-        GameManager.GetInstance().StateChangeRequest(AppState.GameFinished);
+        if(GameManager.GetInstance().currentEEGGame.IsTutorial)
+        {
+            GameManager.GetInstance().StateChangeRequest(AppState.GameTutorialFinished);
+        }
+        {
+            GameManager.GetInstance().StateChangeRequest(AppState.GameFinished);
+        }
     }
 
 
