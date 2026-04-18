@@ -1,12 +1,12 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using static GameManager;
 
 public class UIManagerReactionTime : MonoBehaviour
 {
     [Header("General Dependencies")]
-    [SerializeField]
     public Canvas canvas;
 
     // Singleton
@@ -28,14 +28,15 @@ public class UIManagerReactionTime : MonoBehaviour
         if (UIManagerReactionTime.instance == null)
         {
             UIManagerReactionTime.instance = this;
-            DontDestroyOnLoad(gameObject);
-
+            //DontDestroyOnLoad(gameObject);
         }
         else
         {
             Destroy(gameObject); // destroy duplicate
         }
     }
+
+
     public static UIManagerReactionTime GetInstance()
     {
         if (UIManagerReactionTime.instance == null)
@@ -133,18 +134,17 @@ public class UIManagerReactionTime : MonoBehaviour
 
         p1StimulusPanel.SetActive(p1);
         n1StimulusPanel.SetActive(n1);
+
+        if(n1)
+        {
+            audioSource.PlayOneShot(N1Sound);
+        }
     }
 
     public async void GameFinished()
     {
         HideAllPanels();
-        if(GameManager.GetInstance().currentEEGGame.IsTutorial)
-        {
-            GameManager.GetInstance().StateChangeRequest(AppState.GameTutorialFinished);
-        }
-        {
-            GameManager.GetInstance().StateChangeRequest(AppState.GameFinished);
-        }
+        GameManager.GetInstance().StateChangeRequest(AppState.GameFinished);
     }
 
 

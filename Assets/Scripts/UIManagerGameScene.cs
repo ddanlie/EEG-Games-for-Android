@@ -362,6 +362,12 @@ public class UIManagerGameScene : MonoBehaviour
         );
     }
 
+    public void GameTutorialFinished()
+    {
+        UnloadAllScenes();
+        GameManager.GetInstance().StateChangeRequest(GameManager.AppState.MainMenu);
+    }
+
     public void GameFinished()
     {
         UnloadAllScenes();//unload the additive game screen

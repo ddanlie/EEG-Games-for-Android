@@ -380,9 +380,9 @@ MonoBehaviour:
   pauseBetweenTrials: 2
   maxTrials: 10
   p300aOnlyThreshold: 5
-  p1Probability: 0.2
-  p300Probability: 0.75
-  n1Probability: 0.05
+  p1Probability: 0
+  p300Probability: 0
+  n1Probability: 1
   p300aProbability: 0.2
   p300bProbability: 0.8
   currentState: 0

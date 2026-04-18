@@ -1,7 +1,8 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
+using UnityEngine.InputSystem;
 using UXF;
 using static GameManager;
 
@@ -31,14 +32,15 @@ public class EEGGameReactionTime : AbstractEEGGame
     [Header("Settings")]
     [SerializeField] private float initialPauseDuration = 2f;
     [SerializeField] private float waitForReactionDuration = 2f;   // W seconds
-    [SerializeField] private float pauseBetweenTrials = 2f;        // X seconds (pause between trials)
+    [SerializeField] private float pauseBetweenTrialsMin = 2f;        // X seconds (pause between trials)
+    [SerializeField] private float pauseBetweenTrialsMax = 4f;        // X seconds (pause between trials)
     [SerializeField] private int maxTrials = 10;                   // X total trials (counter >= X -> finish)
     [SerializeField] private int p300aOnlyThreshold = 5;           // counter < 5 => always P300
 
     [Header("Probabilities (counter > 5) — must sum to 1")]
-    [SerializeField] private float p1Probability = 0.20f;
-    [SerializeField] private float p300Probability = 0.75f;
-    [SerializeField] private float n1Probability = 0.05f;
+    [SerializeField] private float p1Probability = 0f;//0.2
+    [SerializeField] private float p300Probability = 0f;//0.75
+    [SerializeField] private float n1Probability = 1;//0.05
 
     [SerializeField] private float p300aProbability = 0.2f;
     [SerializeField] private float p300bProbability = 0.8f;
@@ -49,6 +51,23 @@ public class EEGGameReactionTime : AbstractEEGGame
     [SerializeField] private int counter = 0;
 
     private bool tapped = false;
+    private double reactionTime = 0f;
+
+    private InputControls input;
+
+
+    private void OnEnable()
+    {
+        input = new InputControls();
+        input.AndroidMap.Tap.started += OnTap;
+        input.AndroidMap.Enable();
+    }
+
+    void OnDisable()
+    {
+        input.AndroidMap.Tap.started -= OnTap;
+        input.AndroidMap.Disable();
+    }
 
     public override void StartEEGGame(Session session, EventLogger eventLogger)
     {
@@ -77,13 +96,16 @@ public class EEGGameReactionTime : AbstractEEGGame
         return new Dictionary<string, object> { {"nothing", "nothing" } };
     }
 
-    private void OnTap()
+    private void OnTap(InputAction.CallbackContext ctx)
     {
         if(currentState == State.WaitForReaction)
         {
             tapped = true;
+            reactionTime = Time.realtimeSinceStartupAsDouble;
         }
     }
+
+
 
     // Core state machine (single while loop)
     private IEnumerator RunStateMachine()
@@ -114,13 +136,14 @@ public class EEGGameReactionTime : AbstractEEGGame
             // WaitForReaction
             tapped = false;
             SetState(State.WaitForReaction);
-            float stimulusDuration = 0f;
 
-            while (stimulusDuration < waitForReactionDuration && !tapped)
+            double startTime = Time.realtimeSinceStartupAsDouble;
+            while (!tapped && (Time.realtimeSinceStartupAsDouble - startTime) < waitForReactionDuration)
             {
-                stimulusDuration += Time.deltaTime;
                 yield return null;
             }
+
+            float stimulusDuration = (float)(reactionTime - startTime);
 
 
             if (tapped)
@@ -140,7 +163,7 @@ public class EEGGameReactionTime : AbstractEEGGame
             {
                 if (!IsTutorial)
                 {
-                    eventLogger.LogEvent(GetEventLoggerStimulusType(currentStimulus), stimulusDuration, new Dictionary<string, string>
+                    eventLogger.LogEvent(GetEventLoggerStimulusType(currentStimulus), waitForReactionDuration, new Dictionary<string, string>
                     {
                         { "reacted_in_time", "no" }
                     });
@@ -163,7 +186,7 @@ public class EEGGameReactionTime : AbstractEEGGame
 
             // PauseXSeconds (Pause between trials)
             SetState(State.PauseXSeconds);
-            yield return new WaitForSeconds(pauseBetweenTrials);
+            yield return new WaitForSeconds(UnityEngine.Random.Range(pauseBetweenTrialsMin, pauseBetweenTrialsMax));
         }
 
         // Finish
@@ -174,9 +197,12 @@ public class EEGGameReactionTime : AbstractEEGGame
     private StimulusType PickStimulus()
     {
         if (counter < p300aOnlyThreshold)
+        {
             return StimulusType.P300a;
+        }
 
-        float roll = Random.value;
+        float roll = UnityEngine.Random.value;
+        Debug.Log($"Stimulus Roll = {roll}");
 
         if (roll < p1Probability)
         {
@@ -184,7 +210,7 @@ public class EEGGameReactionTime : AbstractEEGGame
         }
         else if (roll < p1Probability + p300Probability)
         {
-            float p3roll = Random.value;
+            float p3roll = UnityEngine.Random.value;
             if(p3roll < p300aProbability)
             {
                 return StimulusType.P300a;
@@ -256,15 +282,15 @@ public class EEGGameReactionTime : AbstractEEGGame
 
     private void Update()
     {
-        if (Input.touchCount > 0)
-        {
-            Touch touch = Input.GetTouch(0);
+        //if(Input.touchCount > 0) 
+        //{
+        //    Touch touch = Input.GetTouch(0);
 
-            if (touch.phase == TouchPhase.Ended)
-            {
-                OnTap();
-            }
-        }
+        //    if (touch.phase == TouchPhase.Began)
+        //    {
+        //        OnTap();
+        //    }
+        //}
     }
 
 }
