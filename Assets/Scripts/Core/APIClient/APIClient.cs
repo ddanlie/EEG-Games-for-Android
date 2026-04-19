@@ -113,9 +113,9 @@ public class APIClient
 
 
     // Expects folder path with following file structure:
-    // ./1_eeg_data.csv
-    // ./1_events.csv
-    // 1(one) - is a trial number. Hence only the first trial of the session will be sent
+    // ./other/eeg_data_T001.csv
+    // ./other/events_T001.csv
+    // 001 - is a trial number. Hence only the first trial of the session will be sent
     public async Task<bool> SendRecoredRunData(string sessionTrialPath)
     {
         if(StubMode)

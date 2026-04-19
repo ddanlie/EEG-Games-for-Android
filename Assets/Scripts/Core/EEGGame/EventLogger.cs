@@ -46,7 +46,7 @@ public class EventLogger
 
     public void SaveToTrial(Trial trial)
     {
-        var header = new string[] { "onset", "duration", "trial_type" };
+        var header = new string[] { "onset", "duration", "trial_type", "response_time", "reacted_in_time"};
         var table = new UXFDataTable(header);
         foreach (var row in events) table.AddCompleteRow(row);
 

@@ -387,6 +387,7 @@ public class UIManagerGameScene : MonoBehaviour
         yesButton.onClick.RemoveAllListeners();
         yesButton.onClick.AddListener(() =>
         {
+            sendingResultsPanel.SetActive(true);
             yesButton.interactable = false;
 
             StartCoroutine(SendData());
@@ -411,6 +412,7 @@ public class UIManagerGameScene : MonoBehaviour
                         sendStatus.text = "Success, redirecting to main menu...";
                         sendStatus.color = new Color(0.3f, 1f, 0.3f);
                         noButton.interactable = false;
+                        GameManager.GetInstance().StateChangeRequest(GameManager.AppState.MainMenu);
                     }
                     else
                     {
@@ -571,16 +573,5 @@ public class UIManagerGameScene : MonoBehaviour
     {
         GameManager.GetInstance().Logout();
         GameManager.GetInstance().StateChangeRequest(GameManager.AppState.Login);
-    }
-
-    // Game Finished Panel
-    public async void OnGameFinishedYesButtonClick()
-    {
-
-    }
-
-    public async void OnGameFinishedNoButtonClicked()
-    {
-
     }
 }

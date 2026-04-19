@@ -377,14 +377,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   initialPauseDuration: 0.5
   waitForReactionDuration: 2
-  pauseBetweenTrials: 2
+  pauseBetweenTrialsMin: 2
+  pauseBetweenTrialsMax: 4
   maxTrials: 10
   p300aOnlyThreshold: 5
-  p1Probability: 0
-  p300Probability: 0
-  n1Probability: 1
-  p300aProbability: 0.2
-  p300bProbability: 0.8
+  p1Probability: 0.2
+  p300Probability: 0.75
+  n1Probability: 0.05
+  p300aProbability: 0.8
+  p300bProbability: 0.2
   currentState: 0
   currentStimulus: 0
   counter: 0

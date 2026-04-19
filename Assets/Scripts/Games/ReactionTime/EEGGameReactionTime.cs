@@ -38,12 +38,12 @@ public class EEGGameReactionTime : AbstractEEGGame
     [SerializeField] private int p300aOnlyThreshold = 5;           // counter < 5 => always P300
 
     [Header("Probabilities (counter > 5) — must sum to 1")]
-    [SerializeField] private float p1Probability = 0f;//0.2
-    [SerializeField] private float p300Probability = 0f;//0.75
-    [SerializeField] private float n1Probability = 1;//0.05
+    [SerializeField] private float p1Probability = 0.2f;
+    [SerializeField] private float p300Probability = 0.75f;
+    [SerializeField] private float n1Probability = 0.05f;
 
-    [SerializeField] private float p300aProbability = 0.2f;
-    [SerializeField] private float p300bProbability = 0.8f;
+    [SerializeField] private float p300aProbability = 0.8f;
+    [SerializeField] private float p300bProbability = 0.2f;
 
     [Header("Runtime Info (read-only)")]
     [SerializeField] private State currentState = State.Idle;
@@ -114,7 +114,7 @@ public class EEGGameReactionTime : AbstractEEGGame
 
         if(!IsTutorial)
         {
-            GameManager.StartDataRecord();
+            GameManager.GetInstance().StartDataRecord();
         }
 
         // Idle
@@ -268,7 +268,7 @@ public class EEGGameReactionTime : AbstractEEGGame
     {
         if(!IsTutorial)
         {
-            GameManager.FinishDataRecord();
+            GameManager.GetInstance().FinishDataRecord();
         }
         Debug.Log($"[StateMachine] Finished after {counter} trials.");
         FinishEEGGame();
