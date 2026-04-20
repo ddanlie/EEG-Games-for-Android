@@ -103,9 +103,5 @@ public class GeneralUtilities
         session.CurrentTrial.SaveDataTable(table, "eeg_data", UXFDataType.OtherTrialData);
     }
 
-    public static ProfileSessionsSyncInfo[] UXFSingleTrialFolderPathParse(string patientId)
-    {
-        //TODO:parse
-        return default;
-    }
+
 }

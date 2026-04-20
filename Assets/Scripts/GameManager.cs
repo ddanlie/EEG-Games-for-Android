@@ -513,18 +513,44 @@ public class GameManager : MonoBehaviour
 
     public async Task<bool> SendRecordedRunData()
     {
-        return await apiclient.SendRecoredRunData(currentSessionPath);
+        return await apiclient.SendRecoredRunData(currentSessionPath, currentUserIdentity);
     }
 
     //TODO: use in user analysis panel
-    public async Task<bool> SynchronizeProfileRunsData()
+    public async Task<bool> SynchronizeProfileRunsDataForward()
     {
-        return await apiclient.SynchronizeProfileRunsData();
+        return await apiclient.SynchronizeProfileRunsDataForward(currentUserIdentity);
     }
     // Public API for UI managers - END
 
-    private string UXFSingleTrialFolderPath(string experimentName, string patientId, int sessionNumber)
+    public string UXFSingleTrialFolderPath(string experimentName, string patientId, int sessionNumber)
     {
         return Path.Combine(uxfExperimentsDataPath, experimentName, patientId, $"S{sessionNumber}");
+    }
+
+    public string UXFProfileSessionsDataPath(string experimentName, string patientId)
+    {
+        return Path.Combine(uxfExperimentsDataPath, experimentName, patientId);
+    }
+
+    //reverse function for UXFSingleTrialFolderPath function
+    public static ProfileSessionInfo UXFSingleTrialFolderPathParse(string sessionTrialPath)
+    {
+        string normalized = sessionTrialPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        string[] parts = normalized.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+        // .../experimentName/patientId/S<sessionNumber>
+        string sessionPart = parts[^1]; // e.g. "S3"
+        string patientId = parts[^2];
+        string experimentName = parts[^3];
+
+        int sessionNumber = int.Parse(sessionPart.TrimStart('S'));
+
+        return new ProfileSessionInfo
+        {
+            patientId = patientId,
+            experimentName = experimentName,
+            sessionNumber = sessionNumber.ToString()
+        };
     }
 }

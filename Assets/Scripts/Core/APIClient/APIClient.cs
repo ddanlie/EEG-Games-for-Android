@@ -1,8 +1,12 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
+using UXF;
 
 public class APIClient
 {
@@ -113,26 +117,134 @@ public class APIClient
 
 
     // Expects folder path with following file structure:
-    // ./other/eeg_data_T001.csv
-    // ./other/events_T001.csv
+    // sessionTrialPath/other/eeg_data_T001.csv
+    // sessionTrialPath/other/events_T001.csv
+    // sessionTrialPath/session_info/settings.json
     // 001 - is a trial number. Hence only the first trial of the session will be sent
-    public async Task<bool> SendRecoredRunData(string sessionTrialPath)
-    {
-        if(StubMode)
-        {
-            await Task.Delay(StubTimerSec);
-            return true;
-        }
-        return false;//TODO: make real request
-    }
-
-    public async Task<bool> SynchronizeProfileRunsData()
+    public async Task<bool> SendRecoredRunData(string sessionTrialPath, UserIdentity identity)
     {
         if (StubMode)
         {
             await Task.Delay(StubTimerSec);
             return true;
         }
-        return false;//TODO: make real request
+
+
+        // Form file paths
+        ProfileSessionInfo profileSessionInfo = GameManager.UXFSingleTrialFolderPathParse(sessionTrialPath);
+
+        string otherFolder = Path.Combine(sessionTrialPath, "other");
+        string sessionInfoFolder = Path.Combine(sessionTrialPath, "session_info");
+
+        RecordedRunData runData = new RecordedRunData
+        {
+            eventsFilePath = Path.Combine(otherFolder, "events_T001.csv"),
+            eegDataFilePath = Path.Combine(otherFolder, "eeg_data_T001.csv"),
+            gameSettingsFilePath = Path.Combine(sessionInfoFolder, "settings.json"),
+            profileSessionInfo = profileSessionInfo
+        };
+
+        // Read and send the files
+        byte[] eventsBytes = File.ReadAllBytes(runData.eventsFilePath);
+        byte[] eegBytes = File.ReadAllBytes(runData.eegDataFilePath);
+        byte[] settingsBytes = File.ReadAllBytes(runData.gameSettingsFilePath);
+
+        List<IMultipartFormSection> form = new List<IMultipartFormSection>
+        {
+            new MultipartFormFileSection("events", eventsBytes, "events_T001.csv", "text/csv"),
+            new MultipartFormFileSection("eegData", eegBytes, "eeg_data_T001.csv","text/csv"),
+            new MultipartFormFileSection("gameSettings", settingsBytes, "settings.json", "application/json"),
+            new MultipartFormDataSection("patientId", profileSessionInfo.patientId),
+            new MultipartFormDataSection("experimentName", profileSessionInfo.experimentName),
+            new MultipartFormDataSection("sessionNumber", profileSessionInfo.sessionNumber),
+        };
+
+        byte[] boundary = UnityWebRequest.GenerateBoundary();
+
+        using var request = UnityWebRequest.Post(BaseUrl + "/recorded-run-send", form, boundary);
+        request.SetRequestHeader("Authorization", $"Bearer {identity.token}");
+        await request.SendWebRequest();
+
+        return request.result == UnityWebRequest.Result.Success;
+    }
+    public async Task<bool> SynchronizeProfileRunsDataForward(string experimentName, UserIdentity identity)
+    {
+        if (StubMode)
+        {
+            await Task.Delay(StubTimerSec);
+            return true;
+        }
+
+        try
+        {
+            string profileSessionsPath = GameManager.GetInstance().UXFProfileSessionsDataPath(experimentName, identity.userId);
+            string[] sessionFolders = Directory.GetDirectories(profileSessionsPath, "S*", SearchOption.AllDirectories);
+
+            ProfileSessionInfo[] sessions = sessionFolders
+                .Select(folder => GameManager.UXFSingleTrialFolderPathParse(folder))
+                .ToArray();
+
+            if (sessions.Length == 0)
+            {
+                return true;
+            }
+
+            ProfileSessionsSyncInfo syncInfo = new ProfileSessionsSyncInfo
+            {
+                sessions = sessions
+            };
+
+            byte[] bodyBytes = Encoding.UTF8.GetBytes(JsonUtility.ToJson(syncInfo));
+
+            using var checkRequest = new UnityWebRequest(BaseUrl + "/sync-profile-data", "GET");
+            checkRequest.uploadHandler = new UploadHandlerRaw(bodyBytes);
+            checkRequest.downloadHandler = new DownloadHandlerBuffer();
+            checkRequest.SetRequestHeader("Content-Type", "application/json");
+            checkRequest.SetRequestHeader("Authorization", $"Bearer {identity.token}");
+            await checkRequest.SendWebRequest();
+
+            if (checkRequest.result != UnityWebRequest.Result.Success)
+            {
+                return false;
+            }
+
+            string json = checkRequest.downloadHandler.text;
+            string wrapped = $"{{\"items\":{json}}}";
+            SyncStatusList statusList = JsonUtility.FromJson<SyncStatusList>(wrapped);
+
+            if (statusList.items == null)
+            {
+                return false;
+            }
+
+            // --- Send missing sessions ---
+            foreach (var entry in statusList.items)
+            {
+                if (entry.synced)
+                {
+                    continue;
+                }
+                string[] info = entry.key.Split('-');
+                string infoPatientId = info[0];
+                string infoExperimentName = info[1];
+                string infoSessionNumber = info[2];
+
+                string sessionPath = GameManager.GetInstance()
+                    .UXFSingleTrialFolderPath(infoExperimentName, infoPatientId, int.Parse(infoSessionNumber));
+
+                bool sent = await SendRecoredRunData(sessionPath, identity);
+                if (!sent)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[SynchronizeProfileRunsData] {e.Message}");
+            return false;
+        }
     }
 }

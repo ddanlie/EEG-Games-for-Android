@@ -73,14 +73,35 @@ public struct EEGGameInfo
 [Serializable]
 public struct ProfileSessionsSyncInfo
 {
-    string patientId;
-    ProfileSessionInfo[] sessions;
+    public ProfileSessionInfo[] sessions;
 }
-
 
 [Serializable]
 public struct ProfileSessionInfo
 {
-    string experimentName;
-    string sessionNumber;
+    public string patientId;
+    public string experimentName;
+    public string sessionNumber;
+}
+
+[Serializable]
+public struct SyncStatusList
+{
+    public SyncStatusEntry[] items;
+}
+
+[Serializable]
+public struct SyncStatusEntry
+{
+    public string key;// "patientId-experimentName-sessionNumber"
+    public bool synced;
+}
+
+[Serializable]
+public struct RecordedRunData
+{
+    public string eventsFilePath;
+    public string eegDataFilePath;
+    public string gameSettingsFilePath;
+    public ProfileSessionInfo profileSessionInfo;
 }
