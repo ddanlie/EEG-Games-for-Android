@@ -501,9 +501,10 @@ public class GameManager : MonoBehaviour
         LocalStorage.Delete(identityFileName);
     }
 
+    // TODO: use in profile page
     public async Task<IndividualInfo> RequestIndividualInfo()
     {
-        return await apiclient.GetIndividualInfo(currentUserIdentity.userId);
+        return await apiclient.GetIndividualInfo(currentUserIdentity);
     }
 
     public async Task<GeneralGameListInfo> RequestGeneralEEGGamesInfo()
@@ -517,9 +518,9 @@ public class GameManager : MonoBehaviour
     }
 
     //TODO: use in user analysis panel
-    public async Task<bool> SynchronizeProfileRunsDataForward()
+    public async Task<bool> SynchronizeProfileRunsDataForward(string experimentName)
     {
-        return await apiclient.SynchronizeProfileRunsDataForward(currentUserIdentity);
+        return await apiclient.SynchronizeProfileRunsDataForward(experimentName, currentUserIdentity);
     }
     // Public API for UI managers - END
 

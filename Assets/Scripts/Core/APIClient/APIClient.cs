@@ -10,7 +10,7 @@ using UXF;
 
 public class APIClient
 {
-    private const string BaseUrl = "xxx";
+    private const string BaseUrl = "http://127.0.0.1:8000/api/v1";
     private bool StubMode;
     private int StubTimerSec;// how long stub operations would last [seconds]
     public APIClient(bool StubMode = false, int StubTimerSec=3000) 
@@ -25,11 +25,13 @@ public class APIClient
     [Serializable] private class UserIdentityResponse { public string token; public string userId; }
     public async Task<UserIdentity> Login(string token)
     {
-        if (StubMode) { await Task.Delay(StubTimerSec); return new UserIdentity { token = "xxx_stub_token_xxx", userId = "1" }; }
-        var body = Encoding.UTF8.GetBytes(JsonUtility.ToJson(new EmailCodeRequest { email = null, code = null }));
+        if (StubMode) 
+        {
+            await Task.Delay(StubTimerSec);
+            return new UserIdentity { token = "xxx_stub_token_xxx", userId = "1" };
+        }
 
         using var request = new UnityWebRequest(BaseUrl + "/auth/login", "POST");
-        request.uploadHandler = new UploadHandlerRaw(body);
         request.downloadHandler = new DownloadHandlerBuffer();
         request.SetRequestHeader("Authorization", "Bearer " + token);
         request.SetRequestHeader("Accept", "application/json");
@@ -75,7 +77,7 @@ public class APIClient
         return request.result == UnityWebRequest.Result.Success;
     }
 
-    public async Task<IndividualInfo> GetIndividualInfo(string userId)
+    public async Task<IndividualInfo> GetIndividualInfo(UserIdentity identity)
     {
         if (StubMode)
         {
@@ -83,7 +85,7 @@ public class APIClient
             return new IndividualInfo
             {
                 name = "John Doe",
-                userId = userId,
+                userId = identity.userId,
                 notes = "Test stub",
                 age = 30,
                 weightKg = 75,
