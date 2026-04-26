@@ -83,11 +83,10 @@ public class GeneralUtilities
         // make headers
         int channelCount = data[0].Length;
         string[] headers = new string[channelCount];
-        for (int i = 0; i < channelCount-1; i++)
+        for (int i = 0; i < channelCount; i++)
         {
             headers[i] = $"channel_{i + 1}";
         }
-        headers[headers.Length - 1] = "unix_timestamp_ms";
 
         // fill UXFDataTable
         var table = new UXFDataTable(headers);

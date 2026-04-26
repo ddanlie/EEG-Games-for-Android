@@ -35,15 +35,15 @@ public class EEGGameReactionTime : AbstractEEGGame
     [SerializeField] private float pauseBetweenTrialsMin = 2f;        // X seconds (pause between trials)
     [SerializeField] private float pauseBetweenTrialsMax = 4f;        // X seconds (pause between trials)
     [SerializeField] private int maxTrials = 10;                   // X total trials (counter >= X -> finish)
-    [SerializeField] private int p300aOnlyThreshold = 5;           // counter < 5 => always P300
+    [SerializeField] private int p300bOnlyThreshold = 5;           // counter < 5 => always P300
 
     [Header("Probabilities (counter > 5) — must sum to 1")]
     [SerializeField] private float p1Probability = 0.2f;
     [SerializeField] private float p300Probability = 0.75f;
     [SerializeField] private float n1Probability = 0.05f;
 
-    [SerializeField] private float p300aProbability = 0.8f;
-    [SerializeField] private float p300bProbability = 0.2f;
+    [SerializeField] private float p300aProbability = 0.2f;
+    [SerializeField] private float p300bProbability = 0.8f;
 
     [Header("Runtime Info (read-only)")]
     [SerializeField] private State currentState = State.Idle;
@@ -196,9 +196,9 @@ public class EEGGameReactionTime : AbstractEEGGame
 
     private StimulusType PickStimulus()
     {
-        if (counter < p300aOnlyThreshold)
+        if (counter < p300bOnlyThreshold)
         {
-            return StimulusType.P300a;
+            return StimulusType.P300b;
         }
 
         float roll = UnityEngine.Random.value;

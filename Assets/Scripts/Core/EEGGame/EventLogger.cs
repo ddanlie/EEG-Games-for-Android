@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -26,10 +27,10 @@ public class EventLogger
         // see https://bids-specification.readthedocs.io/en/stable/modality-agnostic-files/events.html
         var row = new UXFDataRow()
         {
-            ("onset", onset.ToString("F4")),
-            ("duration", duration.ToString("F4")),
+            ("onset", (onset/1000f).ToString("F4", CultureInfo.InvariantCulture)),//seconds
+            ("duration", (duration/1000f).ToString("F4", CultureInfo.InvariantCulture)),//seconds
             ("trial_type", eventType),
-            ("response_time", duration.ToString("F4"))
+            ("response_time", (duration / 1000f).ToString("F4", CultureInfo.InvariantCulture))//seconds
         };
 
         // Add any extra BIDS columns
