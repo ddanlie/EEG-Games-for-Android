@@ -28,9 +28,9 @@ public class EventLogger
         var row = new UXFDataRow()
         {
             ("onset", (onset/1000f).ToString("F4", CultureInfo.InvariantCulture)),//seconds
-            ("duration", (duration/1000f).ToString("F4", CultureInfo.InvariantCulture)),//seconds
+            ("duration", duration.ToString("F4", CultureInfo.InvariantCulture)),//seconds
             ("trial_type", eventType),
-            ("response_time", (duration / 1000f).ToString("F4", CultureInfo.InvariantCulture))//seconds
+            ("response_time", duration.ToString("F4", CultureInfo.InvariantCulture))//seconds
         };
 
         // Add any extra BIDS columns

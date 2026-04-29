@@ -38,9 +38,9 @@ public class EEGGameReactionTime : AbstractEEGGame
     [SerializeField] private int p300bOnlyThreshold = 5;           // counter < 5 => always P300
 
     [Header("Probabilities (counter > 5) — must sum to 1")]
-    [SerializeField] private float p1Probability = 0.2f;
-    [SerializeField] private float p300Probability = 0.75f;
-    [SerializeField] private float n1Probability = 0.05f;
+    [SerializeField] private float p1Probability = 0f;//0.2f;
+    [SerializeField] private float p300Probability = 1f;//0.75f;
+    [SerializeField] private float n1Probability = 0f;//0.05f;
 
     [SerializeField] private float p300aProbability = 0.2f;
     [SerializeField] private float p300bProbability = 0.8f;
