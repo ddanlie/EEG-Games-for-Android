@@ -17,33 +17,29 @@ public class EEGGameReactionTime : AbstractEEGGame
         Registered,
         ReactTooLong,
         PauseXSeconds,
+        FrequenstStimulusShow,
         Finish
     }
 
     public enum StimulusType
     {
         DefaultNostim,
-        P300a,
-        P300b,
-        P1,
-        N1
+        FrequentStim,
+        P300b
     }
 
     [Header("Settings")]
     [SerializeField] private float initialPauseDuration = 2f;
-    [SerializeField] private float waitForReactionDuration = 2f;   // W seconds
-    [SerializeField] private float pauseBetweenTrialsMin = 2f;        // X seconds (pause between trials)
-    [SerializeField] private float pauseBetweenTrialsMax = 4f;        // X seconds (pause between trials)
-    [SerializeField] private int maxTrials = 10;                   // X total trials (counter >= X -> finish)
-    [SerializeField] private int p300bOnlyThreshold = 5;           // counter < 5 => always P300
+    [SerializeField] private float frequentStimDuration = 0.6f;
+    [SerializeField] private float waitForReactionDuration = 1.5f;   // W seconds
+    [SerializeField] private float pauseBetweenTrialsMin = 2f;       // X seconds (pause between trials)
+    [SerializeField] private float pauseBetweenTrialsMax = 4f;       // X seconds (pause between trials)
+    [SerializeField] private int maxTrials = 10;                     // X total trials (counter >= X -> finish)
+    [SerializeField] private int frequentStimOnlyThreshold = 5;             // counter < 5 => always P300
 
     [Header("Probabilities (counter > 5) — must sum to 1")]
-    [SerializeField] private float p1Probability = 0f;//0.2f;
-    [SerializeField] private float p300Probability = 1f;//0.75f;
-    [SerializeField] private float n1Probability = 0f;//0.05f;
-
-    [SerializeField] private float p300aProbability = 0.2f;
-    [SerializeField] private float p300bProbability = 0.8f;
+    [SerializeField] private float frequentStimProbability = 0.9f;
+    [SerializeField] private float p300bProbability = 0.1f;
 
     [Header("Runtime Info (read-only)")]
     [SerializeField] private State currentState = State.Idle;
@@ -133,49 +129,58 @@ public class EEGGameReactionTime : AbstractEEGGame
             OnStimulusShow(currentStimulus);
             yield return null;
 
-            // WaitForReaction
+            // if P3b - WaitForReaction
             tapped = false;
-            SetState(State.WaitForReaction);
-
-            double startTime = Time.realtimeSinceStartupAsDouble;
-            while (!tapped && (Time.realtimeSinceStartupAsDouble - startTime) < waitForReactionDuration)
+            if (currentStimulus == StimulusType.P300b)
             {
-                yield return null;
-            }
+                SetState(State.WaitForReaction);
 
-            float stimulusDuration = (float)(reactionTime - startTime);
-
-
-            if (tapped)
-            {
-                if(!IsTutorial)
+                double startTime = Time.realtimeSinceStartupAsDouble;
+                while (!tapped && (Time.realtimeSinceStartupAsDouble - startTime) < waitForReactionDuration)
                 {
-                    eventLogger.LogEvent(GetEventLoggerStimulusType(currentStimulus), stimulusDuration, new Dictionary<string, string>
-                    {
-                        { "reacted_in_time", "yes" }
-                    });
+                    yield return null;
                 }
-                // Registered
-                SetState(State.Registered);
-                OnRegistered(stimulusDuration);
+
+                float stimulusDuration = (float)(reactionTime - startTime);
+
+
+                if (tapped)
+                {
+                    if(!IsTutorial)
+                    {
+                        eventLogger.LogEvent(GetEventLoggerStimulusType(currentStimulus), stimulusDuration, new Dictionary<string, string>
+                        {
+                            { "reacted_in_time", "yes" }
+                        });
+                    }
+                    // Registered
+                    SetState(State.Registered);
+                    OnRegistered(stimulusDuration);
+                }
+                else
+                {
+                    if (!IsTutorial)
+                    {
+                        eventLogger.LogEvent(GetEventLoggerStimulusType(currentStimulus), waitForReactionDuration, new Dictionary<string, string>
+                        {
+                            { "reacted_in_time", "no" }
+                        });
+                    }
+                    //ReactTooLong
+                    SetState(State.ReactTooLong);
+                    OnReactTooLong();
+                }
             }
             else
             {
-                if (!IsTutorial)
-                {
-                    eventLogger.LogEvent(GetEventLoggerStimulusType(currentStimulus), waitForReactionDuration, new Dictionary<string, string>
-                    {
-                        { "reacted_in_time", "no" }
-                    });
-                }
-                //ReactTooLong
-                SetState(State.ReactTooLong);
-                OnReactTooLong();
+                SetState(State.FrequenstStimulusShow);
+                OnFrequentStimulusShow();
+                yield return new WaitForSeconds(frequentStimDuration);
+                OnFrequentStimulusFinish();
             }
-
             yield return null; // one frame to display result
 
-            // Increment counter
+            // Increment frequent stimulus threshold counter
             counter++;
 
             if (counter >= maxTrials)
@@ -196,44 +201,30 @@ public class EEGGameReactionTime : AbstractEEGGame
 
     private StimulusType PickStimulus()
     {
-        if (counter < p300bOnlyThreshold)
+        if (counter < frequentStimOnlyThreshold)
         {
-            return StimulusType.P300b;
+            return StimulusType.FrequentStim;
         }
 
         float roll = UnityEngine.Random.value;
         Debug.Log($"Stimulus Roll = {roll}");
 
-        if (roll < p1Probability)
+        if (roll < frequentStimProbability)
         {
-            return StimulusType.P1;
-        }
-        else if (roll < p1Probability + p300Probability)
-        {
-            float p3roll = UnityEngine.Random.value;
-            if(p3roll < p300aProbability)
-            {
-                return StimulusType.P300a;
-            }
-            else
-            {
-                return StimulusType.P300b;
-            }
+            return StimulusType.FrequentStim;
         }
         else
         {
-            return StimulusType.N1;
+            return StimulusType.P300b;
         }
     }
 
-    private string GetEventLoggerStimulusType(StimulusType s) => s switch
-    {
-        StimulusType.DefaultNostim => "<NO EVENT>",
-        StimulusType.P300a => "ERP_P3A",
-        StimulusType.P300b => "ERP_P3B",
-        StimulusType.P1 => "ERP_P1",
-        StimulusType.N1 => "ERP_N1"
-     };
+    private string GetEventLoggerStimulusType(StimulusType s) => 
+        s switch
+        {
+            StimulusType.DefaultNostim => "<NO EVENT>",
+            StimulusType.P300b => "ERP_P3B"
+        };
     private void SetState(State newState)
     {
         currentState = newState;
@@ -261,6 +252,17 @@ public class EEGGameReactionTime : AbstractEEGGame
     private void OnReactTooLong()
     {
         Debug.Log("[StateMachine] No reaction — too slow!");
+        UIManagerReactionTime.GetInstance().ShowTooLongFeedback();
+        UIManagerReactionTime.GetInstance().ShowStimulus(StimulusType.DefaultNostim);
+    }
+
+    private void OnFrequentStimulusShow()
+    {
+        UIManagerReactionTime.GetInstance().ShowStimulus(StimulusType.FrequentStim);
+    }
+
+    private void OnFrequentStimulusFinish()
+    {
         UIManagerReactionTime.GetInstance().ShowStimulus(StimulusType.DefaultNostim);
     }
 

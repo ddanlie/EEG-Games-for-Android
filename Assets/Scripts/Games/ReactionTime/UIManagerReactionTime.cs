@@ -1,7 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using System.Threading.Tasks;
 using static GameManager;
 
 public class UIManagerReactionTime : MonoBehaviour
@@ -13,22 +15,16 @@ public class UIManagerReactionTime : MonoBehaviour
     private static UIManagerReactionTime instance = null;
 
     // Game elements
-    [SerializeField] private GameObject defaultStimulusPanel;
-    [SerializeField] private GameObject defaultStimulusP3aImage;
-    [SerializeField] private GameObject defaultStimulusP3bImage;
-    [SerializeField] private GameObject p1StimulusPanel;
-    [SerializeField] private GameObject n1StimulusPanel;
-
-    [SerializeField] private AudioSource audioSource;
-    [SerializeField] private AudioClip N1Sound;
-
+    [SerializeField] private GameObject  noStimulusPanel;
+    [SerializeField] private GameObject  defaultStimulusPanel;
+    [SerializeField] private GameObject  P3bStimulusImage;
+    [SerializeField] private TextMeshProUGUI tooLongFeedbackTitle;
 
     private void Awake()
     {
         if (UIManagerReactionTime.instance == null)
         {
             UIManagerReactionTime.instance = this;
-            //DontDestroyOnLoad(gameObject);
         }
         else
         {
@@ -111,34 +107,32 @@ public class UIManagerReactionTime : MonoBehaviour
     public void StartState()
     {
         ShowPanel("GamePanel");
-        defaultStimulusPanel.SetActive(true);
-        defaultStimulusP3aImage.SetActive(false);
-        defaultStimulusP3bImage.SetActive(false);
-
-        p1StimulusPanel.SetActive(false);
-        n1StimulusPanel.SetActive(false);
+        noStimulusPanel.SetActive(true);
+        defaultStimulusPanel.SetActive(false);
+        P3bStimulusImage.SetActive(false);
+        tooLongFeedbackTitle.enabled = false;
     }
 
     // Stimuli names: "p3a", "p3b", "default_nostim", "p1", "n1"
     public void ShowStimulus(EEGGameReactionTime.StimulusType stimulus)
     {
-        bool p3a = stimulus == EEGGameReactionTime.StimulusType.P300a;
+        bool frequentStim = stimulus == EEGGameReactionTime.StimulusType.FrequentStim;
         bool p3b = stimulus == EEGGameReactionTime.StimulusType.P300b;
-        bool defaultNostim = stimulus == EEGGameReactionTime.StimulusType.DefaultNostim;
-        bool p1 = stimulus == EEGGameReactionTime.StimulusType.P1;
-        bool n1 = stimulus == EEGGameReactionTime.StimulusType.N1;
+        //bool defaultNoStim = stimulus == EEGGameReactionTime.StimulusType.DefaultNostim;
 
-        defaultStimulusPanel.SetActive(defaultNostim || p3a || p3b);
-        defaultStimulusP3aImage.SetActive(p3a);
-        defaultStimulusP3bImage.SetActive(p3b);
+        defaultStimulusPanel.SetActive(frequentStim);
+        P3bStimulusImage.SetActive(p3b);
+    }
 
-        p1StimulusPanel.SetActive(p1);
-        n1StimulusPanel.SetActive(n1);
-
-        if(n1)
-        {
-            audioSource.PlayOneShot(N1Sound);
-        }
+    public void ShowTooLongFeedback()
+    {
+        tooLongFeedbackTitle.enabled = true;
+        StartCoroutine(HideFeedbackAfterDelay());
+    }
+    private IEnumerator HideFeedbackAfterDelay()
+    {
+        yield return new WaitForSeconds(0.4f);
+        tooLongFeedbackTitle.enabled = false;
     }
 
     public async void GameFinished()
