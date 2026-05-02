@@ -382,7 +382,8 @@ public class GameManager : MonoBehaviour
     public string EEGGameIdToUnitySceneGameName(string id)
     {
         //TODO: make mapping
-        return "ReactionTime";
+        //return "ReactionTime";
+        return "VisualSearch";
     }
 
     private bool InitEEGSource()

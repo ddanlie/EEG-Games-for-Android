@@ -116,7 +116,7 @@ public class EEGGameReactionTime : AbstractEEGGame
         // Idle
         SetState(State.Idle);
         OnIdle();
-        yield return null;
+        yield return new WaitForEndOfFrame();
         // Pause
         SetState(State.Pause);
         yield return new WaitForSeconds(initialPauseDuration);
@@ -127,7 +127,7 @@ public class EEGGameReactionTime : AbstractEEGGame
             currentStimulus = PickStimulus();
             SetState(State.Stimulus);
             OnStimulusShow(currentStimulus);
-            yield return null;
+            yield return new WaitForEndOfFrame();
 
             // if P3b - WaitForReaction
             tapped = false;
@@ -178,7 +178,7 @@ public class EEGGameReactionTime : AbstractEEGGame
                 yield return new WaitForSeconds(frequentStimDuration);
                 OnFrequentStimulusFinish();
             }
-            yield return null; // one frame to display result
+            yield return new WaitForEndOfFrame(); // one frame to display result
 
             // Increment frequent stimulus threshold counter
             counter++;
