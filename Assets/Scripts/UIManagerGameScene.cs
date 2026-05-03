@@ -343,11 +343,7 @@ public class UIManagerGameScene : MonoBehaviour
     {
         HideAllPanels();
 
-        LoadEEGGameSceneAdditive(
-            GameManager.GetInstance().EEGGameIdToUnitySceneGameName(
-                mainMenuInfo.currentFocusedGameInfo.id
-             )
-        );
+        LoadEEGGameSceneAdditive(mainMenuInfo.currentFocusedGameInfo.sceneName);
     }
 
     // Must load the scene, can't be async
@@ -356,9 +352,7 @@ public class UIManagerGameScene : MonoBehaviour
         HideAllPanels();
 
         LoadEEGGameSceneAdditive(
-            GameManager.GetInstance().EEGGameIdToUnitySceneGameName(
-                mainMenuInfo.currentFocusedGameInfo.id
-             )
+            mainMenuInfo.currentFocusedGameInfo.sceneName
         );
     }
 

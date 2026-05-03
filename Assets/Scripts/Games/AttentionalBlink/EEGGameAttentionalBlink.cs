@@ -1,11 +1,12 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
+using UnityEngine.UIElements;
 using UXF;
 using static EEGGameReactionTime;
-using static UnityEditor.Experimental.AssetDatabaseExperimental.AssetDatabaseCounters;
 
 public class EEGGameAttentionalBlink : AbstractEEGGame
 {
@@ -30,7 +31,7 @@ public class EEGGameAttentionalBlink : AbstractEEGGame
     [Header("Settings")]
     [SerializeField] private float stim1ToStim2MaxDelayMs = 400f; // 100ms step 
     [SerializeField] private float waitForReactionDurationSec = 5f;   // W seconds
-    [SerializeField] private int trialsPerIteration = 10;
+    [SerializeField] private int trialsPerIteration = 3;
 
     [Header("Probabilities")]
     [SerializeField] private float targetPresentFirstProbability = 0.3f;
@@ -41,6 +42,7 @@ public class EEGGameAttentionalBlink : AbstractEEGGame
     [SerializeField] private State currentState = State.Idle;
     [SerializeField] private StimulusType currentStimulus;
     [SerializeField] private int trialCounter = 0;
+
 
     private bool tapped = false;
     private bool yesClicked = false;
@@ -92,17 +94,19 @@ public class EEGGameAttentionalBlink : AbstractEEGGame
     }
 
 
-    private void OnYesButtonClick()
+    public void OnYesButtonClick()
     {
         reactionTime = Time.realtimeSinceStartupAsDouble;
         yesClicked = true;
     }
 
-    private void OnNoButtonclick()
+    public void OnNoButtonclick()
     {
         reactionTime = Time.realtimeSinceStartupAsDouble;
         noClicked = true;
     }
+
+
 
     private void OnTap(InputAction.CallbackContext ctx)
     {
@@ -123,6 +127,7 @@ public class EEGGameAttentionalBlink : AbstractEEGGame
             GameManager.GetInstance().StartDataRecord();
         }
         SetState(State.Idle);
+        OnIdle();
         for (float stimDelay = stim1ToStim2MaxDelayMs; stimDelay >= 100; stimDelay -= 100)
         {
             for(int trialNum = 0; trialNum < trialsPerIteration; trialNum++) 
@@ -136,14 +141,15 @@ public class EEGGameAttentionalBlink : AbstractEEGGame
                     s1position = Random.Range(0,4);// 0 - y up, 1 - x right, 2 - y down, 3 - x left
                     s2position = Random.Range(0,4);
                 }
+                tapped = false;
                 SetState(State.WaitUntilReady);
                 OnWaitUntilReady();
-                tapped = false;
                 yield return new WaitUntil(() => tapped);
+                OnWaitUntilReadyTapped();
                 yield return new WaitForSeconds(1);
                 SetState(State.Stimulus1);
-                OnStimulus1(targetVariant == 1, s1position, s11LengthSec, stimDelay);
-                yield return new WaitForSeconds(stimDelay+s11LengthSec);
+                OnStimulus1(targetVariant == 1, s1position, s11LengthSec);
+                yield return new WaitForSeconds(stimDelay/1000+s11LengthSec);
                 SetState(State.Stimulus2);
                 OnStimulus2(targetVariant == 2, s2position, s21LengthSec);
                 double startTime = Time.realtimeSinceStartupAsDouble;//order is important!
@@ -153,9 +159,14 @@ public class EEGGameAttentionalBlink : AbstractEEGGame
                 noClicked = false;
                 while (!yesClicked && !noClicked && (Time.realtimeSinceStartupAsDouble - startTime) < waitForReactionDurationSec)
                 {
+                    Debug.Log($"times: {Time.realtimeSinceStartupAsDouble - startTime} < {waitForReactionDurationSec}");
                     yield return null;
                 }
-                float stimulus2Duration = (float)(reactionTime - startTime);//seconds
+                float stimulus2Duration = waitForReactionDurationSec;
+                if (yesClicked || noClicked) 
+                {
+                    stimulus2Duration = (float)(reactionTime - startTime);//seconds
+                }
                 float stimulus1Duration = stimDelay/1000 ;//seconds //not used in analysis, so actual value doesn't matter
                 bool targetPresent = (targetVariant == 1 || targetVariant == 2);
                 int timeCoef = targetVariant == 1 ? -1 : 1;// if target is first - time should be negative
@@ -276,31 +287,34 @@ public class EEGGameAttentionalBlink : AbstractEEGGame
                 }
                 else//too long 
                 {
-                    //1st P2
-                    eventLogger.LogEvent(p2firstName, stimulus1Duration, new Dictionary<string, string>
+                    if (!IsTutorial)
                     {
-                        { "stim1_stim2_time_ms", (stimDelay*(targetPresent ? timeCoef : 1)).ToString()},
-                        { "stim1_pos",  s1position.ToString() },
-                        { "stim2_pos", s2position.ToString() },
-                        { "target_present", targetPresent ? "yes" : "no"},
-                        { "status", "too_slow"},//correct|error|too_slow
+                        //1st P2
+                        eventLogger.LogEvent(p2firstName, stimulus1Duration, new Dictionary<string, string>
+                        {
+                            { "stim1_stim2_time_ms", (stimDelay*(targetPresent ? timeCoef : 1)).ToString()},
+                            { "stim1_pos",  s1position.ToString() },
+                            { "stim2_pos", s2position.ToString() },
+                            { "target_present", targetPresent ? "yes" : "no"},
+                            { "status", "too_slow"},//correct|error|too_slow
 
-                    });
-                    //2nd P2 (true reaction time)
-                    eventLogger.LogEvent(p2secondName, waitForReactionDurationSec, new Dictionary<string, string>
-                    {
-                        { "stim1_stim2_time_ms", (stimDelay*(targetPresent ? timeCoef : 1)).ToString()},
-                        { "stim1_pos",  s1position.ToString() },
-                        { "stim2_pos", s2position.ToString() },
-                        { "target_present", targetPresent ? "yes" : "no" },
-                        { "status", "too_slow" +
-                        ""},//correct|error|too_slow
-                    });
+                        });
+                        //2nd P2 (true reaction time)
+                        eventLogger.LogEvent(p2secondName, waitForReactionDurationSec, new Dictionary<string, string>
+                        {
+                            { "stim1_stim2_time_ms", (stimDelay*(targetPresent ? timeCoef : 1)).ToString()},
+                            { "stim1_pos",  s1position.ToString() },
+                            { "stim2_pos", s2position.ToString() },
+                            { "target_present", targetPresent ? "yes" : "no" },
+                            { "status", "too_slow" +
+                            ""},//correct|error|too_slow
+                        });
+                    }
 
                     SetState(State.ReactTooLong);
                     OnReactTooLong();
                 }
-                yield return new WaitForEndOfFrame();
+                yield return new WaitForSeconds(0.5f);
 
 
             }
@@ -330,24 +344,46 @@ public class EEGGameAttentionalBlink : AbstractEEGGame
         }
     }
 
+
+    private void OnIdle()
+    {
+        UIManagerAttentionalBlink.GetInstance().StartState();
+    }
     private void OnWaitUntilReady()
     {
-        //UIManagerAttentionalBlink.GetInstance().
+        UIManagerAttentionalBlink.GetInstance().WaitForTap();
+    }
+
+    private void OnWaitUntilReadyTapped()
+    {
+        UIManagerAttentionalBlink.GetInstance().ClearScreen();
+    }
+
+    //s11LengthSec - first part of the first stimulus to last [seconds]
+    private void OnStimulus1(bool isTargetPresent, int s1position, float s11LengthSec)
+    {
+        UIManagerAttentionalBlink.GetInstance().ShowStim1(isTargetPresent, s1position, s11LengthSec);
+    }
+
+    //s12LengthSec - first part of the second stimulus to last [seconds]
+    private void OnStimulus2(bool isTargetPresent, int s2position, float s21LengthSec)
+    {
+        UIManagerAttentionalBlink.GetInstance().ShowStim2(isTargetPresent, s2position, s21LengthSec);
     }
 
     private void OnRegistered()
     {
-
+        UIManagerAttentionalBlink.GetInstance().RegisteredCorrect();
     }
 
     private void OnRegisteredMistake()
     {
-
+        UIManagerAttentionalBlink.GetInstance().RegisteredMistake();
     }
 
     private void OnReactTooLong()
     {
-
+        UIManagerAttentionalBlink.GetInstance().RegisterTooLong();
     }
 
     private void OnFinish()
@@ -358,23 +394,13 @@ public class EEGGameAttentionalBlink : AbstractEEGGame
         }
         Debug.Log($"[StateMachine] Finished after {trialCounter} trials.");
         FinishEEGGame();
-        UIManagerVisualSearch.GetInstance().GameFinished();
+        UIManagerAttentionalBlink.GetInstance().GameFinished();
     }
 
     private void SetState(State newState)
     {
         currentState = newState;
         Debug.Log($"[StateMachine] State: {newState}");
-    }
-
-
-    private void OnStimulus1(bool isTargetPresent, int s1position, float s11t, float stimDelay)
-    {
-
-    }
-    private void OnStimulus2(bool isTargetPresent, int s2position, float t)
-    {
-
     }
 
 

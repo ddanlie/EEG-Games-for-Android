@@ -220,9 +220,7 @@ public class GameManager : MonoBehaviour
 
                         IEnumerator WaitLoad()
                         {
-                            string sceneName = EEGGameIdToUnitySceneGameName(
-                                UIManagerGameScene.GetInstance().mainMenuInfo.currentFocusedGameInfo.id
-                            );
+                            string sceneName = UIManagerGameScene.GetInstance().mainMenuInfo.currentFocusedGameInfo.sceneName;
 
                             yield return new WaitUntil(() =>
                                 SceneManager.GetSceneByName(sceneName).isLoaded);
@@ -259,9 +257,7 @@ public class GameManager : MonoBehaviour
 
                         IEnumerator WaitLoad()
                         {
-                            string sceneName = EEGGameIdToUnitySceneGameName(
-                                UIManagerGameScene.GetInstance().mainMenuInfo.currentFocusedGameInfo.id
-                            );
+                            string sceneName = UIManagerGameScene.GetInstance().mainMenuInfo.currentFocusedGameInfo.sceneName;
                             Debug.Log($"Current focused game id and scene name: " +
                                 $"<{UIManagerGameScene.GetInstance().mainMenuInfo.currentFocusedGameInfo.id}>, {sceneName}");
 
@@ -281,9 +277,7 @@ public class GameManager : MonoBehaviour
                         // Nice place i think, then on finish - stop recording, worth a try
 
                         Debug.Log("Experiment name is:");
-                        string experimentName = GameManager.GetInstance().EEGGameIdToUnitySceneGameName(
-                            UIManagerGameScene.GetInstance().mainMenuInfo.currentFocusedGameInfo.id
-                        );
+                        string experimentName = UIManagerGameScene.GetInstance().mainMenuInfo.currentFocusedGameInfo.sceneName;
                         Debug.Log($"<{experimentName}>");
                         Debug.Log("Participant id is:");
                         string participantId = currentUserIdentity.userId;
@@ -378,13 +372,6 @@ public class GameManager : MonoBehaviour
         }
     }
 #endif
-
-    public string EEGGameIdToUnitySceneGameName(string id)
-    {
-        //TODO: make mapping
-        //return "ReactionTime";
-        return "VisualSearch";
-    }
 
     private bool InitEEGSource()
     {

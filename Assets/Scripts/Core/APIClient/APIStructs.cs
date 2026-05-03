@@ -61,6 +61,7 @@ public struct GeneralGameInfo
     public string description;
     public string domain;
     public string subdomain;
+    public string sceneName;
 }
 
 [Serializable]

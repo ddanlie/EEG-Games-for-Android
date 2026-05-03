@@ -15,9 +15,7 @@ public class UIManagerVisualSearch : MonoBehaviour
 
     // Game elements
 
-    //var go = Instantiate(prefab, parentTransform);
-    //go.transform.localPosition = new Vector3(x, y, z);
-    [SerializeField] private GameObject targetImage; //Instantiate(prefab, new Vector3(x,y,z), Quaternion.identity, parentTransform); 
+    [SerializeField] private GameObject targetImage;
     [SerializeField] private GameObject distractorImage1;
     [SerializeField] private GameObject distractorImage2;
     [SerializeField] private GameObject recoverAttentionImage1;
@@ -91,7 +89,7 @@ public class UIManagerVisualSearch : MonoBehaviour
     }
 
 
-    public void OnRVisualSearchPlayButtonClick()
+    public void OnVisualSearchPlayButtonClick()
     {
         if (GameManager.GetInstance().currentEEGGame == null)
         {
@@ -182,7 +180,6 @@ public class UIManagerVisualSearch : MonoBehaviour
                 imgToPlace = Instantiate(imgs[Random.Range(0, imgs.Length)], stimuliGridPanel.transform);
             }
             imgToPlace.SetActive(true);
-            //imgToPlace.GetComponent<RectTransform>().anchoredPosition = Vector2.zero;
             imgToPlace.GetComponent<RectTransform>().localPosition = Vector3.zero;
             imgToPlace.GetComponent<RectTransform>().position = Vector3.zero;
             imgToPlace.GetComponent<RectTransform>().anchoredPosition =

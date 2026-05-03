@@ -108,9 +108,9 @@ public class APIClient
             {
                 games = new[]
                 {
-                    new GeneralGameInfo { id="1", name="Game 1", description="Very nice game, helpful for early disabilities signs detection", domain="Complex Attention", subdomain="Sustained Attention"},
-                    new GeneralGameInfo { id="2", name="Game 2", description="Very nice game, helpful for early disabilities signs detection", domain="Complex Attention", subdomain="Divided Attention"},
-                    new GeneralGameInfo { id="3", name="Game 3", description="Very nice game, helpful for early disabilities signs detection", domain="Complex Attention", subdomain="Selective Attention"},
+                    new GeneralGameInfo { id="1", name="Reaction Time", description="Very nice game, helpful for early disabilities signs detection", domain="Complex Attention", subdomain="Sustained Attention", sceneName="ReactionTime"},
+                    new GeneralGameInfo { id="2", name="Visual Search", description="Very nice game, helpful for early disabilities signs detection", domain="Complex Attention", subdomain="Selective Attention", sceneName="VisualSearch"},
+                    new GeneralGameInfo { id="3", name="Attentional Blink", description="Very nice game, helpful for early disabilities signs detection", domain="Complex Attention", subdomain="Divided Attention", sceneName="AttentionalBlink"},
                 }
             };
         }
