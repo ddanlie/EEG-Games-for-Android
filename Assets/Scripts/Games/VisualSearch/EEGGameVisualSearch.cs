@@ -26,10 +26,10 @@ public class EEGGameVisualSearch : AbstractEEGGame
     [Header("Settings")]
     [SerializeField] private int TobjectsPerLevel = 10;
     [SerializeField] private float initialPauseDuration = 2f;
-    [SerializeField] private float waitForReactionDuration = 4f; // for both - present and absent stimuli
+    [SerializeField] private float waitForReactionDuration = 4f;//seconds // for both - present and absent stimuli
     [SerializeField] private int maxTrials = 10;
 
-    [Header("Probabilities (counter > 5) — must sum to 1")]
+    [Header("Probabilities")]
     [SerializeField] private float presentTargetProbability = 0.5f;
 
     [Header("Runtime Info (read-only)")]
@@ -137,7 +137,7 @@ public class EEGGameVisualSearch : AbstractEEGGame
                         eventLogger.LogEvent(gameStimulusName, stimulusDuration, new Dictionary<string, string>
                         {
                             { "status", "correct"},//correct|error|too_slow
-                            { "distractor_is_present", "yes" },
+                            { "target_is_present", "yes" },
                             { "number_of_distractors", objectsAmount.ToString() }
                         });
                     }
@@ -152,7 +152,7 @@ public class EEGGameVisualSearch : AbstractEEGGame
                         eventLogger.LogEvent(gameStimulusName, waitForReactionDuration, new Dictionary<string, string>
                         {
                             { "status", "too_slow"},
-                            { "distractor_is_present", "yes" },
+                            { "target_is_present", "yes" },
                             { "number_of_distractors", objectsAmount.ToString() }
                         });
                     }
@@ -182,7 +182,7 @@ public class EEGGameVisualSearch : AbstractEEGGame
                         eventLogger.LogEvent(gameStimulusName, stimulusDuration, new Dictionary<string, string>
                         {
                             { "status", "error"},
-                            { "distractor_is_present", "no" },
+                            { "target_is_present", "no" },
                             { "number_of_distractors", objectsAmount.ToString() }
                         });
                     }
@@ -197,7 +197,7 @@ public class EEGGameVisualSearch : AbstractEEGGame
                         eventLogger.LogEvent(gameStimulusName, waitForReactionDuration, new Dictionary<string, string>
                         {
                             { "status", "correct" },
-                            { "distractor_is_present", "no" },
+                            { "target_is_present", "no" },
                             { "number_of_distractors", objectsAmount.ToString() }
                         });
                     }
